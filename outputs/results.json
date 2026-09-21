@@ -1,0 +1,158 @@
+[
+  {
+    "enquiry": {
+      "enquiry_id": "ENQ-001",
+      "sender_name": "Megan Ashworth",
+      "sender_email": "ml19ma@leeds.ac.uk",
+      "body": "Hi, I recently moved house and need to update my home address on the system. How do I do this? Thanks, Megan"
+    },
+    "triage_result": {
+      "enquiry_id": "ENQ-001",
+      "category": "info",
+      "confidence": 0.9,
+      "summary": "Student wants to know how to update their home address on the student system.",
+      "suggested_team": [
+        "student_information_service"
+      ],
+      "internal_or_external": "internal",
+      "missing_info": null,
+      "suggested_response_draft": "Dear Megan Ashworth,\n\nThanks for your message. You can update your home address yourself by logging into the student portal and going to 'Personal Details' > 'Addresses'. Let us know if you have any trouble accessing this.\n\nBest wishes,\nStudent Information Service",
+      "requires_human_review": true,
+      "urgency": "low",
+      "needs_human_judgement": false,
+      "internal_note": null,
+      "flags": [],
+      "additional_issues": []
+    }
+  },
+  {
+    "enquiry": {
+      "enquiry_id": "ENQ-002",
+      "sender_name": "Josh Whitfield",
+      "sender_email": "el21jw@leeds.ac.uk",
+      "body": "Hello, I have dyslexia and I think I need extra time in my exams this year. How do I go about arranging this? I haven't done this before so not sure what I need to send over. Thanks, Josh"
+    },
+    "triage_result": {
+      "enquiry_id": "ENQ-002",
+      "category": "disability",
+      "confidence": 0.8,
+      "summary": "Student believes they have dyslexia and is asking how to arrange extra time in exams.",
+      "suggested_team": [
+        "disability_services"
+      ],
+      "internal_or_external": "internal",
+      "missing_info": {
+        "evidence_attached": "no",
+        "details": "No diagnostic report or healthcare letter mentioned/attached."
+      },
+      "suggested_response_draft": "Dear Josh Whitfield,\n\nThank you for getting in touch about exam adjustments. To arrange these we first need supporting evidence, such as a diagnostic assessment report or a letter from a healthcare professional. Could you please attach this to your reply, or let us know if you already have evidence on file with us? Once we have this we can look at putting a Student Support Plan in place.\n\nBest wishes,\nDisability Services",
+      "requires_human_review": true,
+      "urgency": "medium",
+      "needs_human_judgement": false,
+      "internal_note": null,
+      "flags": [
+        "missing_evidence"
+      ],
+      "additional_issues": []
+    }
+  },
+  {
+    "enquiry": {
+      "enquiry_id": "ENQ-003",
+      "sender_name": "Priya Nandakumar",
+      "sender_email": "bs20pn@leeds.ac.uk",
+      "body": "Hi, I've been really struggling lately and don't know who to talk to. It's been building up for a while now and I just don't really know where to start. Priya"
+    },
+    "triage_result": {
+      "enquiry_id": "ENQ-003",
+      "category": "wellbeing",
+      "confidence": 0.4,
+      "summary": "Student says they have been struggling and doesn't know who to talk to; no specifics given.",
+      "suggested_team": [
+        "counselling_and_wellbeing",
+        "luu_advice"
+      ],
+      "internal_or_external": "ambiguous",
+      "missing_info": null,
+      "suggested_response_draft": null,
+      "requires_human_review": true,
+      "urgency": "medium",
+      "needs_human_judgement": true,
+      "internal_note": "Enquiry is too generic to tell whether the student wants University clinical/counselling support (internal) or independent peer support via LUU Advice (external), which have different confidentiality and data-handling implications. Deferring to a human rather than guessing.",
+      "flags": [
+        "ambiguous_referral",
+        "low_confidence"
+      ],
+      "additional_issues": []
+    }
+  },
+  {
+    "enquiry": {
+      "enquiry_id": "ENQ-004",
+      "sender_name": "Callum O'Reilly",
+      "sender_email": "pg22co@leeds.ac.uk",
+      "body": "Hi, I'm having trouble paying rent this month and I'm really worried about it. Is there any support available for this? Thanks, Callum"
+    },
+    "triage_result": {
+      "enquiry_id": "ENQ-004",
+      "category": "funding",
+      "confidence": 0.75,
+      "summary": "Student is having trouble paying rent this month and is asking about financial support.",
+      "suggested_team": [
+        "student_funding_team"
+      ],
+      "internal_or_external": "internal",
+      "missing_info": null,
+      "suggested_response_draft": null,
+      "requires_human_review": true,
+      "urgency": "high",
+      "needs_human_judgement": false,
+      "internal_note": "Financial hardship enquiries are treated as sensitive; leaving the reply to a human adviser rather than auto-drafting.",
+      "flags": [
+        "sensitive_financial"
+      ],
+      "additional_issues": []
+    }
+  },
+  {
+    "enquiry": {
+      "enquiry_id": "ENQ-005",
+      "sender_name": "Aisha Rahman",
+      "sender_email": "sc19ar@leeds.ac.uk",
+      "body": "Hello, two things - first, two of my modules have a timetable clash on Wednesdays which I need sorting before term starts. Separately, I have a mobility impairment and the room for one of my seminars is up two flights of stairs with no lift, which I can't manage, so I need that moved to an accessible room. My evidence letter from occupational health is already on file with Disability Services from last year. Thanks, Aisha"
+    },
+    "triage_result": {
+      "enquiry_id": "ENQ-005",
+      "category": "info",
+      "confidence": 0.55,
+      "summary": "Student reports a timetable clash and separately raises a disability-related access issue.",
+      "suggested_team": [
+        "student_information_service"
+      ],
+      "internal_or_external": "internal",
+      "missing_info": {
+        "evidence_attached": "yes",
+        "details": "Evidence stated as already on file with Disability Services."
+      },
+      "suggested_response_draft": null,
+      "requires_human_review": true,
+      "urgency": "medium",
+      "needs_human_judgement": true,
+      "internal_note": "Two distinct issues in one email (timetable clash + disability access). Routed to both teams rather than picking one; mock client cannot draft safely here.",
+      "flags": [
+        "multi_issue",
+        "low_confidence"
+      ],
+      "additional_issues": [
+        {
+          "category": "disability",
+          "suggested_team": [
+            "disability_services"
+          ],
+          "summary": "Student also raises a disability-related access issue alongside the timetable query.",
+          "urgency": "medium"
+        }
+      ]
+    }
+  }
+]
