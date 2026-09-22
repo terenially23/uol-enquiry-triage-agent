@@ -1,5 +1,31 @@
 # Write-up: Student Enquiry Triage Agent
 
+## Sources
+
+Every routing category and the two guardrail-driving facts below are
+grounded in these pages. Where a page's content wasn't available to cite
+directly, that's stated rather than left implicit.
+
+| URL | What it grounds |
+|---|---|
+| [eps.leeds.ac.uk/electronic-engineering/doc/contact-us-5](https://eps.leeds.ac.uk/electronic-engineering/doc/contact-us-5) | Student Information Service as a first-line, signposting contact point ("we can put you in touch with the right people if more specialist support or advice is needed") |
+| [students.leeds.ac.uk/](https://students.leeds.ac.uk/) (the actual redirect target of the `ses.leeds.ac.uk/download/downloads/id/1610/...` URL) | LUU's help being "completely independent of the University"; general overview of disabled-student support |
+| [leeds.ac.uk/undergraduate-offer/doc/wellbeing-and-support](https://leeds.ac.uk/undergraduate-offer/doc/wellbeing-and-support) | **Not retrieved in this session** — listed in the original brief but no page content was available to cite from it; nothing in this repo is attributed to it |
+| [www.leeds.ac.uk/studentsupport](https://www.leeds.ac.uk/studentsupport) | LUU's advice described as "free, confidential and independent"; Counselling/wellbeing support listed as a University service with no independence claim; Academic Personal Tutor as an assigned contact |
+| [students.leeds.ac.uk/support-disabled-students](https://students.leeds.ac.uk/support-disabled-students) | Disability Services requiring registration + "supporting information about your disability" before support is arranged (added mid-build once the original 4 pages turned out not to cover this fact — see `guidance/disability_evidence.md`) |
+
+Two facts get a **verbatim, cited excerpt** wired into the agent's output
+(not just described in this write-up) — see `guidance/`:
+
+- `guidance/disability_evidence.md` — the registration/evidence requirement.
+- `guidance/luu_vs_counselling_independence.md` — the LUU-independent vs
+  Counselling-University-service contrast.
+
+Both files carry an explicit "Honesty note" flagging anywhere this
+project's phrasing (e.g. "diagnostic report/healthcare letter",
+"University-run") goes slightly beyond the source's literal wording, and
+what's actually verbatim vs. this project's reasonable gloss.
+
 ## The routing structure
 
 Six real Leeds services, modelled with their actual constraints rather than
@@ -71,6 +97,35 @@ this way, and mostly it will — but "mostly" isn't good enough for the two
 things in the brief marked as hard constraints. Guardrail code that runs
 regardless of model output is the actual enforcement mechanism; the prompt
 is a hint, the code after it is the constraint.
+
+## Citing sources in the output: `source_citation`
+
+The **`source_citation`** field on `TriageResult` carries the grounded
+citation. It is populated by `guidance/retrieve.py`'s `citation_for()`,
+called from `agent.py`'s guardrail step — deterministically, in Python,
+*after* the LLM call, the same way `requires_human_review` is. The LLM
+never generates the citation text; it can't, because it never sees
+`guidance/retrieve.py`. This matters for the same reason the other
+guardrails run in code: an LLM asked to "cite your source" will sometimes
+paraphrase or invent a plausible-looking one, and a wrong citation on a
+disability-evidence claim is worse than no citation.
+
+Trigger conditions (see `citation_for`): `category == "disability"` →
+the evidence-requirement excerpt; `internal_or_external == "ambiguous"` →
+the LUU-independence excerpt. Everything else gets `source_citation: null`
+— most enquiries (a routine address change, a funding query) don't touch
+either grounded fact, and a null is more honest than attaching a citation
+that isn't actually relevant.
+
+**Known limitation of this wiring:** the citation only looks at the
+top-level `category`/`internal_or_external`, not `additional_issues`. In
+enquiry 5 (timetable + disability access), the disability issue lands in
+`additional_issues` with the top-level category staying `info`, so no
+citation is attached even though the disability fact is relevant to the
+secondary issue. Fixing this properly means running `citation_for` per
+issue, not just once per result — left out here because it's a small,
+clearly-scoped prototype, but it's the first thing I'd fix if multi-issue
+enquiries turned out to be common.
 
 ## Test results (5/5 sample enquiries, `outputs/results.json`)
 
@@ -144,11 +199,13 @@ them rather than implying more maturity than it has:
 - **No evaluation set.** The 5 sample enquiries are the brief's own
   examples, hand-picked to be illustrative, not a statistically meaningful
   test of categorisation accuracy. See above.
-- **No ingested Leeds guidance/policy documents.** `routing.py` is a small
-  hand-written knowledge base of team names and one-line descriptions, not
-  RAG over actual University web pages, so any specific procedural detail
-  in a draft response (portal navigation steps, exact evidence
-  requirements) is illustrative, not verified against current guidance.
+- **No real retrieval/RAG system.** `guidance/` grounds exactly two facts
+  (disability evidence requirement, LUU independence) as hand-picked,
+  hard-coded excerpts looked up by a Python `if`, not embeddings or search
+  over actual University guidance. `routing.py`'s team descriptions beyond
+  those two facts are still an illustrative, hand-written knowledge base,
+  not verified against current Leeds documentation page by page. See
+  "Scalability" below for what a real version needs.
 - **No ticketing/CRM integration.** Output is a JSON file a human reads;
   there's no queue, no assignment, no SLA tracking, no way to mark an
   enquiry "actioned."
@@ -165,3 +222,71 @@ them rather than implying more maturity than it has:
 - **Mock fallback is not a categoriser.** `MockClient` is keyword matching
   used only so the prototype runs without API credentials; it's a testing
   convenience, not evidence the approach works without an LLM.
+
+## Scalability: what breaks first, and what I'd change
+
+This is a script, not a service. Honestly, in order of what would break
+first at real volume:
+
+1. **Grounding stops at two facts.** `guidance/` has exactly two hand-picked,
+   hard-coded excerpts (disability evidence, LUU independence). Every other
+   claim the agent makes — portal navigation steps in a draft, "five
+   information points on campus," specific team email addresses — is either
+   from the LLM's general knowledge or this project's own `routing.py`
+   descriptions, not verified against live Leeds guidance. At volume, this
+   is the highest-risk gap: a confidently-worded wrong procedural detail in
+   an auto-draft is a worse failure than a low-confidence flag.
+   → **Fix:** a real retrieval layer (embeddings + a vector store, or even
+   just a maintained, versioned set of scraped/curated Leeds guidance
+   pages with a proper crawler and re-index job) so every factual claim in
+   a draft is retrieved and citable, not just the two facts this prototype
+   covers.
+
+2. **Synchronous, single LLM call, no retry/queueing.** `agent.triage()` is
+   one blocking API call. A transient API error, rate limit, or timeout
+   currently just raises and kills the run. There's no retry, no backoff,
+   no dead-letter handling for enquiries that fail categorisation twice.
+   → **Fix:** an async task queue (e.g. Celery/RQ over Redis, or a cloud
+   queue) so enquiry ingestion (email arriving) is decoupled from
+   triage processing, with retries and a visible failure state instead of
+   a crashed script.
+
+3. **No persistence beyond a JSON file.** `outputs/results.json` is
+   overwritten on every run, there's no history, no way to query "show me
+   everything flagged `missing_evidence` this week," and no audit trail
+   of what a human reviewer actually did with a draft (edited it? sent it
+   as-is? overrode the category?).
+   → **Fix:** a real datastore (even SQLite would beat a JSON file) with
+   an append-only audit log — who reviewed what, what changed before
+   sending, when.
+
+4. **No ticketing/CRM integration.** Nothing here creates a ticket, assigns
+   an owner, or tracks SLA/response time. A generalist team at real volume
+   needs enquiries to land somewhere with ownership and status, not a
+   script output a human has to manually action.
+   → **Fix:** integrate with whatever the team already uses (e.g.
+   Freshdesk, a Dynamics/CRM ticketing module, or even a shared inbox with
+   labels) rather than building bespoke ticketing — triage output becomes
+   ticket metadata (category, suggested team, urgency), not the ticket
+   itself.
+
+5. **No evaluation set, so accuracy is unmeasured and untracked.** As
+   covered above — 5 hand-picked examples tell you the happy path works,
+   not the real distribution. At volume, model updates (a new Claude
+   version, a prompt tweak) could silently regress accuracy on categories
+   this prototype's 5 cases don't exercise.
+   → **Fix:** a labelled eval set from real (anonymised) historical
+   enquiries, run on every prompt/model change, with tracked
+   precision/recall per category and specific attention to the ambiguous
+   pairs (funding/wellbeing, disability/academic) — plus structured
+   logging (every triage call, its input, output, and eventual human
+   correction) to keep building that eval set over time.
+
+6. **No real human-review UI.** Reviewers currently read `run_tests.py`
+   terminal output or a JSON file. There's no queue view, no way to
+   edit-and-approve a draft in place, no per-reviewer accountability.
+   → **Fix:** even a minimal internal web UI (a table of pending enquiries,
+   click to see full structured output + raw text + editable draft, one
+   button to mark reviewed) would be the actual production requirement —
+   this prototype's script output is a stand-in for that, not a
+   substitute.

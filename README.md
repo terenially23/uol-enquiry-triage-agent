@@ -5,22 +5,28 @@ takes a raw student enquiry (sender + free-text body), categorises it
 against the real Leeds service structure, and produces a structured record
 a human reviews before anything is sent. **It never sends anything itself.**
 
-See [`WRITEUP.md`](WRITEUP.md) for the design rationale, test results, a
-known failure case, and an explicit list of what this prototype does not
-do.
+See [`WRITEUP.md`](WRITEUP.md) for the design rationale, sourced citations
+(which real Leeds page grounds which routing decision), test results, a
+known failure case, a scalability assessment, and an explicit list of what
+this prototype does not do.
 
 ## Quick start
 
 ```bash
 pip install -r requirements.txt        # only needed for the real LLM path
 export ANTHROPIC_API_KEY=sk-...        # optional -- see below
-python3 scripts/run_tests.py
+python3 scripts/run_tests.py           # batch: all 5 sample enquiries
+python3 scripts/try_one.py             # interactive: paste one enquiry
+python3 scripts/export_table.py        # markdown + CSV table from results.json
 ```
 
-This runs the 5 sample enquiries in `data/sample_enquiries.json` through
-the agent, prints a human-readable summary of each (raw enquiry text next
-to the agent's own output, deliberately, so a reviewer can spot-check),
-and saves full structured output to `outputs/results.json`.
+`run_tests.py` runs the 5 sample enquiries in `data/sample_enquiries.json`
+through the agent, prints a human-readable summary of each (raw enquiry
+text next to the agent's own output, deliberately, so a reviewer can
+spot-check), and saves full structured output to `outputs/results.json`.
+`try_one.py` does the same for a single custom enquiry you paste in,
+without touching `outputs/`. `export_table.py` flattens `results.json`
+into `outputs/results_table.md` / `.csv` -- one row per enquiry.
 
 - **With `ANTHROPIC_API_KEY` set**: uses the real Claude API for
   categorisation, via a tool-use call that forces valid structured JSON.
@@ -39,9 +45,16 @@ triage_agent/
   schema.py       structured output schema (dataclasses)
   llm_client.py   AnthropicClient (real) + MockClient (offline fallback)
   agent.py        TriageAgent: calls the LLM, then enforces hard guardrails
+  display.py      shared human-readable rendering (run_tests.py + try_one.py)
+guidance/
+  disability_evidence.md               sourced excerpt: evidence requirement
+  luu_vs_counselling_independence.md   sourced excerpt: internal vs external
+  retrieve.py     looks up the right excerpt in code, not via the LLM
 data/sample_enquiries.json   the 5 test enquiries from the brief
-scripts/run_tests.py         runs all 5 and saves outputs/results.json
-outputs/results.json         saved sample output (committed for review)
+scripts/run_tests.py         batch: runs all 5, saves outputs/results.json
+scripts/try_one.py           interactive: triage one pasted enquiry
+scripts/export_table.py      renders results.json as a markdown/CSV table
+outputs/                     saved sample output (committed for review)
 ```
 
 ## Design in one paragraph

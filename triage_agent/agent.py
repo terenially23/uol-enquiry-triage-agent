@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import uuid
 
+from guidance.retrieve import citation_for
+
 from .llm_client import LLMClient
 from .routing import VALID_CATEGORIES, VALID_URGENCY, VALID_INTERNAL_EXTERNAL, TEAMS
 from .schema import TriageResult, MissingInfo, AdditionalIssue
@@ -118,6 +120,11 @@ class TriageAgent:
 
         # Sanity check: suggested_team entries should be known team keys.
         result.suggested_team = [t for t in result.suggested_team if t in TEAMS] or result.suggested_team
+
+        # Attach a grounded source citation deterministically, in code --
+        # not asked of the LLM -- so it always traces to a real URL rather
+        # than a model-paraphrased claim. See guidance/retrieve.py.
+        result.source_citation = citation_for(result.category, result.internal_or_external)
 
 
 def _looks_like_a_promise(draft: str) -> bool:
