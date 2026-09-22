@@ -19,6 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from triage_agent.agent import TriageAgent
+from triage_agent.display import print_row
 from triage_agent.llm_client import AnthropicClient, MockClient
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -39,30 +40,6 @@ def build_client(force_mock: bool):
         return MockClient()
 
 
-def print_row(enquiry: dict, result) -> None:
-    print("=" * 88)
-    print(f"{result.enquiry_id}  |  from: {enquiry['sender_name']} <{enquiry['sender_email']}>")
-    print("-" * 88)
-    print(f"RAW ENQUIRY : {enquiry['body']}")
-    print("-" * 88)
-    print(f"category           : {result.category}  (confidence={result.confidence:.2f})")
-    print(f"suggested_team     : {', '.join(result.suggested_team) or '-'}")
-    print(f"internal_or_ext.   : {result.internal_or_external}")
-    print(f"urgency            : {result.urgency}")
-    print(f"requires_review    : {result.requires_human_review}")
-    print(f"needs_human_judge. : {result.needs_human_judgement}")
-    print(f"flags              : {result.flags or '-'}")
-    if result.missing_info:
-        print(f"missing_info       : evidence_attached={result.missing_info.evidence_attached} ({result.missing_info.details or '-'})")
-    print(f"summary            : {result.summary}")
-    if result.internal_note:
-        print(f"internal_note      : {result.internal_note}")
-    print(f"suggested_response : {result.suggested_response_draft or '<< none -- deferred to human >>'}")
-    for issue in result.additional_issues:
-        print(f"  + additional issue -> category={issue.category}, team={issue.suggested_team}, urgency={issue.urgency}")
-        print(f"    summary: {issue.summary}")
-
-
 def main() -> None:
     force_mock = "--mock" in sys.argv
     enquiries = json.loads(DATA_PATH.read_text())
@@ -77,10 +54,8 @@ def main() -> None:
             body=enquiry["body"],
             enquiry_id=enquiry["enquiry_id"],
         )
-        print_row(enquiry, result)
+        print_row(enquiry["sender_name"], enquiry["sender_email"], enquiry["body"], result)
         results.append({"enquiry": enquiry, "triage_result": result.to_dict()})
-
-    print("=" * 88)
 
     OUTPUT_PATH.parent.mkdir(exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(results, indent=2))

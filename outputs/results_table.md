@@ -1,0 +1,7 @@
+| enquiry_id | sender | category | confidence | suggested_team | internal_or_external | urgency | needs_human_judgement | missing_info | flags | has_draft | summary |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ENQ-001 | Megan Ashworth <ml19ma@leeds.ac.uk> | info | 0.90 | student_information_service | internal | low | False | - | - | True | Student wants to know how to update their home address on the student system. |
+| ENQ-002 | Josh Whitfield <el21jw@leeds.ac.uk> | disability | 0.80 | disability_services | internal | medium | False | no | missing_evidence | True | Student believes they have dyslexia and is asking how to arrange extra time in exams. |
+| ENQ-003 | Priya Nandakumar <bs20pn@leeds.ac.uk> | wellbeing | 0.40 | counselling_and_wellbeing; luu_advice | ambiguous | medium | True | - | ambiguous_referral; low_confidence | False | Student says they have been struggling and doesn't know who to talk to; no specifics given. |
+| ENQ-004 | Callum O'Reilly <pg22co@leeds.ac.uk> | funding | 0.75 | student_funding_team | internal | high | False | - | sensitive_financial | False | Student is having trouble paying rent this month and is asking about financial support. |
+| ENQ-005 | Aisha Rahman <sc19ar@leeds.ac.uk> | info | 0.55 | student_information_service | internal | medium | True | yes | multi_issue; low_confidence | False | Student reports a timetable clash and separately raises a disability-related access issue. |

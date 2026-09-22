@@ -17,6 +17,13 @@ Design notes (see WRITEUP.md for the full rationale):
   (rather than just "it's always true, trust us") so downstream code/UI has
   something to literally check, and so any future prompt change that tries
   to relax it is caught by the guardrail in agent.py, not by convention.
+- `source_citation` holds the source URL (from guidance/sources.py) backing
+  a specific claim made elsewhere in the result -- e.g. the evidence
+  requirement in `missing_info`, or the internal/external split in
+  `internal_or_external`. It is set by agent.py's retrieval step
+  (`guidance/retrieve.py`), not invented by the LLM, and is null when no
+  guidance excerpt applies (most enquiries -- e.g. a routine address
+  change -- don't touch a cited fact at all).
 """
 
 from __future__ import annotations
@@ -54,6 +61,7 @@ class TriageResult:
     internal_note: str | None
     flags: list[str] = field(default_factory=list)
     additional_issues: list[AdditionalIssue] = field(default_factory=list)
+    source_citation: str | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)

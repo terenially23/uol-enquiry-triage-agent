@@ -22,7 +22,8 @@
       "needs_human_judgement": false,
       "internal_note": null,
       "flags": [],
-      "additional_issues": []
+      "additional_issues": [],
+      "source_citation": null
     }
   },
   {
@@ -53,7 +54,8 @@
       "flags": [
         "missing_evidence"
       ],
-      "additional_issues": []
+      "additional_issues": [],
+      "source_citation": null
     }
   },
   {
@@ -83,7 +85,8 @@
         "ambiguous_referral",
         "low_confidence"
       ],
-      "additional_issues": []
+      "additional_issues": [],
+      "source_citation": null
     }
   },
   {
@@ -111,7 +114,8 @@
       "flags": [
         "sensitive_financial"
       ],
-      "additional_issues": []
+      "additional_issues": [],
+      "source_citation": null
     }
   },
   {
@@ -152,7 +156,8 @@
           "summary": "Student also raises a disability-related access issue alongside the timetable query.",
           "urgency": "medium"
         }
-      ]
+      ],
+      "source_citation": null
     }
   }
 ]
