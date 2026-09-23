@@ -154,6 +154,41 @@ exist here because the actual constraint driving this demo is "run it for
 free," and the honest response to a rate limit is to pace around it
 and retry it, not silently swallow the failure.
 
+**A second, unrelated failure mode: tool-call compliance.** On a live run,
+`GroqClient` hit a `400` with error code `tool_use_failed` ("Tool choice
+is required, but model did not call a tool") on the enquiry right after
+the first — a completely different failure from the 429 above. The model
+responded without invoking the forced `submit_triage` tool call at all,
+despite `tool_choice` requiring it.
+
+This is a known, explainable limitation, not a one-off worth just
+retrying past and forgetting: **forced tool-calling
+(`tool_choice: {"type": "function", ...}`) is meaningfully less reliable
+on Groq-hosted open-weight models (Llama 3.3) than on the frontier closed
+models (Claude, GPT) that are more heavily trained/RLHF'd specifically
+for strict compliance under forced tool choice.** `tool_use_failed` is a
+named Groq error code, not an ad hoc exception — evidence Groq's API
+layer treats this as a recognised failure mode of the underlying model,
+not a bug on their end. It's more likely on longer, more
+instruction-dense prompts (this project's `SYSTEM_PROMPT` carries six
+numbered rules competing for the model's attention) and enquiries that
+pull in more of those conditional rules at once — enquiry 2
+(dyslexia/evidence) is exactly that kind of case, consistent with where
+it was actually hit.
+
+**Handled the same way as the 429, but kept structurally separate so the
+two are never confused in logs or in a raised error:** `_is_tool_choice_failure()`
+checks for a `400` with `tool_use_failed` / "did not call a tool" in the
+response body, retries once with a fresh call (no backoff — this isn't a
+rate/capacity issue), and raises a distinctly worded `RuntimeError`
+naming it a "tool-call-compliance failure" if it happens twice in a row.
+**This is a real reliability concern worth stating plainly, not a
+cosmetic one:** the retry lowers the failure rate, it does not guarantee
+zero — a batch or eval run against live Groq can still fail outright on
+an unlucky enquiry, which a paid/frontier-model tier would be
+considerably less exposed to. Anyone relying on this demo against live
+Groq should expect to occasionally re-run a failed call by hand.
+
 ## What the guardrail layer does (and why it's not just prompting)
 
 `agent.py` runs four checks after every LLM response, independent of what
@@ -367,17 +402,35 @@ in — it reports fewer scored fields rather than failing or reporting false
 negatives, and the denominator for a field only grows as that field gets
 filled in across enquiries.
 
-**Final scorecard**, answer key filled in by hand (not auto-generated from
-this project's own prior "matches expectation" claims in "Test results"
-above — an agent grading itself against its own author's assumptions
-would hide exactly the kind of blind spot that produced the two guardrail
-bugs found earlier in this project's history):
+**Final scorecard — `MockClient`, not a live model.** This is a load-
+bearing caveat, not a footnote: this scorecard was produced with
+`--mock`/the automatic `MockClient` fallback (no `GROQ_API_KEY` or
+`ANTHROPIC_API_KEY` was set wherever this was run), so it verifies the
+*guardrail and scoring pipeline is wired correctly end to end*, not that
+a live model categorises these 8 enquiries correctly. Those are different
+claims. `MockClient` is deterministic keyword matching (see "LLM client"
+above) — of course it scores 8/8 against an answer key describing the
+behaviour it was written to produce; that's closer to a pipeline
+smoke test than a model-accuracy result. A live-Groq scorecard, run with
+`python3 scripts/evaluate.py` and `GROQ_API_KEY` set, has not been
+captured in this document. Given a live run has already surfaced a Groq
+reliability issue this mock run obviously can't (see "A second, unrelated
+failure mode: tool-call compliance" in the LLM client section above), a
+live-Groq scorecard should be treated as materially different
+information, not an assumed-equal substitute for this one, before citing
+an accuracy number in interview.
+
+Answer key filled in by hand (not auto-generated from this project's own
+prior "matches expectation" claims in "Test results" above — an agent
+grading itself against its own author's assumptions would hide exactly
+the kind of blind spot that produced the two guardrail bugs found earlier
+in this project's history):
 
 ```
-category                : 8/8 correct
-team                     : 8/8 correct
-flags                    : 8/8 correct
-needs_human_judgement    : 8/8 correct
+category                : 8/8 correct  (MockClient)
+team                     : 8/8 correct  (MockClient)
+flags                    : 8/8 correct  (MockClient)
+needs_human_judgement    : 8/8 correct  (MockClient)
 
 No mismatches on any scored field.
 ```

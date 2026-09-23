@@ -201,14 +201,27 @@ class GroqClient(LLMClient):
     HTTP call is simpler than a second SDK dependency for a client this
     small, and `requests` was already a dependency of this project.
 
-    Reliability guardrail: the free tier's TPM (tokens-per-minute) limit
-    means a 429 is an expected occurrence, not a bug, when a batch runs
-    without pacing (see run_tests.py's inter-enquiry sleep). categorise()
-    catches a 429 once, sleeps for the wait time Groq reports (plus a
-    buffer), and retries exactly once. A second 429 raises -- this is a
-    demo running on a free tier, not a queue with unlimited patience, so
-    failing loudly after one retry is the honest behaviour rather than
-    looping silently.
+    Reliability guardrails, two distinct failure modes, handled separately
+    so they can't be confused with each other in logs or in a RuntimeError
+    message:
+
+    - **429 (rate limit).** The free tier's TPM (tokens-per-minute) limit
+      means a 429 is an expected occurrence, not a bug, when a batch runs
+      without pacing (see run_tests.py's inter-enquiry sleep). categorise()
+      catches it, sleeps for the wait time Groq reports (plus a buffer),
+      and retries exactly once. A second 429 raises.
+    - **400, tool_use_failed ("did not call a tool").** A different,
+      unrelated failure: the model responds without invoking the forced
+      submit_triage tool at all, despite tool_choice requiring it. Not a
+      rate/capacity issue -- retried once with a fresh call, no backoff.
+      A second occurrence raises a distinctly worded error so it isn't
+      mistaken for a rate limit when read later. See WRITEUP.md's LLM
+      client section for how reproducible this is and whether it's a real
+      reliability concern.
+
+    In both cases: fail loudly after one retry rather than looping --
+    this is a demo running on a free tier, not a queue with unlimited
+    patience.
     """
 
     def __init__(self, model: str | None = None, api_key: str | None = None):
@@ -241,6 +254,24 @@ class GroqClient(LLMClient):
                     f"WRITEUP.md's LLM client section. Response: {response.text}"
                 )
 
+        if _is_tool_choice_failure(response):
+            # Distinct from the 429 above: the model responded but didn't
+            # invoke the forced submit_triage tool at all. Not a rate/
+            # capacity issue, so a fresh call, not a backoff -- see class
+            # docstring.
+            print(
+                "[warn] Groq did not call the required tool (tool-call-compliance failure, "
+                "not a rate limit) -- retrying once with a fresh call."
+            )
+            response = self._post(user_message)
+            if _is_tool_choice_failure(response):
+                raise RuntimeError(
+                    "Groq failed to invoke the required submit_triage tool call twice in a "
+                    "row (tool-call-compliance failure -- distinct from a 429 rate limit, do "
+                    "not confuse the two in logs). See GroqClient's docstring for how "
+                    f"reproducible this is. Response: {response.text}"
+                )
+
         if not response.ok:
             raise RuntimeError(f"Groq API error {response.status_code}: {response.text}")
 
@@ -271,6 +302,21 @@ class GroqClient(LLMClient):
 def _parse_retry_wait(error_body: str) -> float:
     match = RETRY_WAIT_RE.search(error_body)
     return float(match.group(1)) if match else RETRY_WAIT_FALLBACK_SECONDS
+
+
+def _is_tool_choice_failure(response) -> bool:
+    """True if Groq returned a 400 because the model didn't invoke the
+    forced tool call at all (error code "tool_use_failed" / message
+    containing "did not call a tool"). Checked by substring on the raw
+    response body rather than a parsed error code field, matching this
+    project's existing approach for the 429 wait-time parsing (see
+    RETRY_WAIT_RE) -- deliberately tolerant of exact response shape, since
+    this is scraping an error message, not a documented stable API
+    contract."""
+    if response.status_code != 400:
+        return False
+    text_lower = response.text.lower()
+    return "tool_use_failed" in text_lower or "did not call a tool" in text_lower
 
 
 class MockClient(LLMClient):
