@@ -14,7 +14,8 @@ this prototype does not do.
 
 ```bash
 pip install -r requirements.txt        # only needed for the real LLM path
-export ANTHROPIC_API_KEY=sk-...        # optional -- see below
+export GROQ_API_KEY=gsk_...            # this demo's actual setup -- free tier
+# or: export ANTHROPIC_API_KEY=sk-...  # alternative -- see below
 python3 scripts/run_tests.py           # batch: all 5 sample enquiries
 python3 scripts/try_one.py             # interactive: paste one enquiry
 python3 scripts/export_table.py        # markdown + CSV table from results.json
@@ -28,24 +29,30 @@ spot-check), and saves full structured output to `outputs/results.json`.
 without touching `outputs/`. `export_table.py` flattens `results.json`
 into `outputs/results_table.md` / `.csv` -- one row per enquiry.
 
-- **With `ANTHROPIC_API_KEY` set**: uses the real Claude API for
-  categorisation, via a tool-use call that forces valid structured JSON.
-- **Without a key**: automatically falls back to a deterministic,
-  keyword-based `MockClient` with the *same* interface, so the prototype
-  runs end-to-end without any credentials. Force this explicitly with
-  `--mock`. This is a stand-in for demonstration/offline testing, not a
-  claim that keyword matching is an adequate categoriser -- see
-  WRITEUP.md.
+Client selection (`triage_agent/client_selection.py`), checked in this
+order:
+
+1. **`GROQ_API_KEY`** set → `GroqClient`, Groq's free-tier
+   `llama-3.3-70b-versatile` via their OpenAI-compatible API. What this
+   demo actually runs on.
+2. **`ANTHROPIC_API_KEY`** set (and no Groq key) → `AnthropicClient`, the
+   real Claude API.
+3. Neither set → `MockClient`, a deterministic keyword-based fallback with
+   the *same* interface, so the prototype still runs end-to-end without
+   any credentials. Force this explicitly with `--mock`. It's a stand-in
+   for demonstration/offline testing, not a claim that keyword matching is
+   an adequate categoriser -- see WRITEUP.md.
 
 ## Layout
 
 ```
 triage_agent/
-  routing.py      routing knowledge base (the 6 real Leeds services)
-  schema.py       structured output schema (dataclasses)
-  llm_client.py   AnthropicClient (real) + MockClient (offline fallback)
-  agent.py        TriageAgent: calls the LLM, then enforces hard guardrails
-  display.py      shared human-readable rendering (run_tests.py + try_one.py)
+  routing.py          routing knowledge base (the 6 real Leeds services)
+  schema.py           structured output schema (dataclasses)
+  llm_client.py       AnthropicClient / GroqClient (real) + MockClient (offline)
+  client_selection.py picks a client from env vars (see priority above)
+  agent.py            TriageAgent: calls the LLM, then enforces hard guardrails
+  display.py          shared human-readable rendering (run_tests.py + try_one.py)
 guidance/
   disability_evidence.md               sourced excerpt: evidence requirement
   luu_vs_counselling_independence.md   sourced excerpt: internal vs external

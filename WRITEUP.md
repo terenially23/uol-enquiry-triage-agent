@@ -75,6 +75,34 @@ Starting from the brief's field list, I changed/added a few things:
   detail travels with the yes/no/unclear flag instead of living only in
   free text.
 
+## LLM client: three implementations behind one interface
+
+`triage_agent/llm_client.py` defines one `LLMClient` abstract interface
+(`categorise(sender_name, sender_email, body) -> dict`) with three
+implementations: `AnthropicClient`, `GroqClient`, and `MockClient`.
+`agent.py` only ever talks to that interface.
+
+**This demo actually runs on `GroqClient`, against Groq's free tier**
+(`llama-3.3-70b-versatile`), not the Claude API — a deliberate,
+cost-conscious swap for a self-funded interview prototype rather than
+spending Anthropic API credits on a 5-enquiry demo. It's included here
+specifically because it's a better argument for the abstraction than
+another paragraph would be: the interface was designed assuming a second
+provider might show up eventually, and when one actually did, `agent.py`,
+`schema.py`, and every guardrail were untouched — only `llm_client.py`
+grew a third class and `client_selection.py` grew a priority check.
+`GroqClient` forces the same JSON-schema tool call as `AnthropicClient`
+(Groq's chat completions API is OpenAI-compatible and supports the same
+tool-calling shape, just wrapped as `{"type": "function", "function":
+{...}}` instead of Anthropic's `{"type": "tool", "name": ...}`), so the
+guardrail path downstream — evidence checks, confidence threshold,
+citation lookup — runs identically regardless of which provider answered.
+
+Client selection (`triage_agent/client_selection.py`, used by both
+`run_tests.py` and `try_one.py`): **`GROQ_API_KEY`** first if set, else
+**`ANTHROPIC_API_KEY`**, else `MockClient`. Groq is checked first because
+it's what this demo is actually configured to use.
+
 ## What the guardrail layer does (and why it's not just prompting)
 
 `agent.py` runs three checks after every LLM response, independent of what

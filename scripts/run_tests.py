@@ -2,42 +2,28 @@
 """Run the triage agent over the 5 sample enquiries and save/print output.
 
 Usage:
-    python3 scripts/run_tests.py            # uses real Claude API if
-                                              # ANTHROPIC_API_KEY is set,
-                                              # otherwise falls back to the
-                                              # deterministic MockClient
+    python3 scripts/run_tests.py            # uses GroqClient if GROQ_API_KEY
+                                              # is set, else AnthropicClient
+                                              # if ANTHROPIC_API_KEY is set,
+                                              # else the offline MockClient
     python3 scripts/run_tests.py --mock      # force the mock client
 """
 
 from __future__ import annotations
 
 import json
-import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from triage_agent.agent import TriageAgent
+from triage_agent.client_selection import build_client
 from triage_agent.display import print_row
-from triage_agent.llm_client import AnthropicClient, MockClient
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_PATH = ROOT / "data" / "sample_enquiries.json"
 OUTPUT_PATH = ROOT / "outputs" / "results.json"
-
-
-def build_client(force_mock: bool):
-    if force_mock or not os.environ.get("ANTHROPIC_API_KEY"):
-        if not force_mock:
-            print("[info] No ANTHROPIC_API_KEY set -- using MockClient (deterministic, offline).\n")
-        return MockClient()
-    try:
-        print(f"[info] Using AnthropicClient (model={os.environ.get('ANTHROPIC_MODEL', 'claude-sonnet-5')}).\n")
-        return AnthropicClient()
-    except ImportError:
-        print("[warn] 'anthropic' package not installed -- falling back to MockClient.\n")
-        return MockClient()
 
 
 def main() -> None:

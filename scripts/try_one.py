@@ -9,33 +9,21 @@ You'll be prompted for a sender name, sender email, and the enquiry body
 (paste it, then finish with a blank line or Ctrl-D). Structured output for
 just that one enquiry is printed -- nothing is saved to outputs/.
 
-Same client selection as run_tests.py: uses AnthropicClient if
-ANTHROPIC_API_KEY is set, otherwise MockClient. Force mock with --mock.
+Same client selection as run_tests.py: GroqClient if GROQ_API_KEY is set,
+else AnthropicClient if ANTHROPIC_API_KEY is set, else MockClient. Force
+mock with --mock.
 """
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from triage_agent.agent import TriageAgent
+from triage_agent.client_selection import build_client
 from triage_agent.display import print_row
-from triage_agent.llm_client import AnthropicClient, MockClient
-
-
-def build_client(force_mock: bool):
-    if force_mock or not os.environ.get("ANTHROPIC_API_KEY"):
-        if not force_mock:
-            print("[info] No ANTHROPIC_API_KEY set -- using MockClient (deterministic, offline).\n")
-        return MockClient()
-    try:
-        return AnthropicClient()
-    except ImportError:
-        print("[warn] 'anthropic' package not installed -- falling back to MockClient.\n")
-        return MockClient()
 
 
 def read_multiline(prompt: str) -> str:

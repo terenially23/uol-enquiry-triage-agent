@@ -1,17 +1,22 @@
 """LLM client abstraction.
 
-Two implementations:
+Three implementations, all behind the same LLMClient interface:
 
 - AnthropicClient: real categorisation via the Claude API, using a tool-use
   call to force valid structured JSON back (no free-text parsing).
+- GroqClient: same idea via Groq's free-tier, OpenAI-compatible chat
+  completions API, used to run this demo without spending Anthropic
+  credits -- see WRITEUP.md.
 - MockClient: a deterministic, keyword-based stand-in with the *same*
-  interface, used when no ANTHROPIC_API_KEY is configured so the prototype
-  still runs end-to-end for a reviewer without API credentials.
+  interface, used when no API key is configured so the prototype still
+  runs end-to-end for a reviewer without any credentials.
 
 This split is itself a design decision worth naming in interview: the agent
-module never talks to the SDK directly, it talks to this interface, so
-swapping models/providers or writing an eval harness against MockClient
-doesn't touch triage logic.
+module never talks to a provider SDK directly, it talks to this interface,
+so swapping providers or writing an eval harness against MockClient doesn't
+touch triage logic. GroqClient existing at all is that claim proven, not
+just asserted -- a second real provider dropped in without touching
+agent.py, schema.py or the guardrail logic.
 """
 
 from __future__ import annotations
@@ -129,6 +134,18 @@ and set urgency to at least "medium".
 
 Always call the submit_triage tool exactly once with your assessment."""
 
+# Same schema, reshaped into OpenAI's tool-calling format -- Groq's chat
+# completions API is OpenAI-compatible, so this is the one bit that differs
+# from Anthropic's {name, description, input_schema} shape.
+OPENAI_TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": RESPONSE_TOOL_SCHEMA["name"],
+        "description": RESPONSE_TOOL_SCHEMA["description"],
+        "parameters": RESPONSE_TOOL_SCHEMA["input_schema"],
+    },
+}
+
 
 class LLMClient(ABC):
     @abstractmethod
@@ -159,6 +176,57 @@ class AnthropicClient(LLMClient):
         for block in response.content:
             if block.type == "tool_use" and block.name == "submit_triage":
                 return block.input
+        raise RuntimeError("Model did not return a submit_triage tool call")
+
+
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+
+
+class GroqClient(LLMClient):
+    """Real categorisation via Groq's free-tier, OpenAI-compatible API.
+
+    Uses `requests` directly rather than the `groq` package -- one plain
+    HTTP call is simpler than a second SDK dependency for a client this
+    small, and `requests` was already a dependency of this project.
+    """
+
+    def __init__(self, model: str | None = None, api_key: str | None = None):
+        import requests  # imported lazily so MockClient works without it installed
+
+        self._requests = requests
+        self._api_key = api_key or os.environ.get("GROQ_API_KEY")
+        if not self._api_key:
+            raise RuntimeError("GROQ_API_KEY is not set")
+        # llama-3.3-70b-versatile was Groq's standard production 70B model
+        # as of this project's build; confirm it's still live on your
+        # account (GET https://api.groq.com/openai/v1/models) before relying
+        # on it, since Groq's free-tier model lineup changes over time.
+        self.model = model or os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+    def categorise(self, sender_name: str, sender_email: str, body: str) -> dict:
+        user_message = f"From: {sender_name} <{sender_email}>\n\n{body.strip()}"
+        response = self._requests.post(
+            GROQ_API_URL,
+            headers={"Authorization": f"Bearer {self._api_key}"},
+            json={
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_message},
+                ],
+                "tools": [OPENAI_TOOL_SCHEMA],
+                "tool_choice": {"type": "function", "function": {"name": "submit_triage"}},
+                "temperature": 0,
+            },
+            timeout=30,
+        )
+        if not response.ok:
+            raise RuntimeError(f"Groq API error {response.status_code}: {response.text}")
+
+        tool_calls = response.json()["choices"][0]["message"].get("tool_calls") or []
+        for call in tool_calls:
+            if call["function"]["name"] == "submit_triage":
+                return json.loads(call["function"]["arguments"])
         raise RuntimeError("Model did not return a submit_triage tool call")
 
 
