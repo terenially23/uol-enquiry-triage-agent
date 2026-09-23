@@ -54,6 +54,21 @@ order:
    for demonstration/offline testing, not a claim that keyword matching is
    an adequate categoriser -- see WRITEUP.md.
 
+## Web demo
+
+```bash
+pip install -r requirements.txt
+streamlit run scripts/demo_app.py
+```
+
+A minimal Streamlit page over the exact same `TriageAgent` and
+`client_selection.build_client()` logic the CLI scripts use -- no separate
+business logic, no changes to `agent.py`/`llm_client.py`/`routing.py`.
+Shows which client is active (Groq/Anthropic/Mock) at the top, takes a
+sender name/email and enquiry body, and renders the full structured
+`TriageResult` on submit. Same client-selection env vars apply
+(`GROQ_API_KEY`/`ANTHROPIC_API_KEY`).
+
 ## Layout
 
 ```
@@ -79,6 +94,7 @@ scripts/evaluate.py          scores actual output against the answer key,
                               saves eval_results.json (full detail) and
                               eval_scorecard.md/.csv (one row per enquiry,
                               expected/actual/PASS-FAIL per field + totals)
+scripts/demo_app.py          Streamlit UI wrapper -- streamlit run scripts/demo_app.py
 tests/test_guardrails.py     unit tests for _apply_guardrails, stubbed LLM
 outputs/                     saved sample output (committed for review)
 ```
