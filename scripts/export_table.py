@@ -36,6 +36,7 @@ COLUMNS = [
     "missing_info",
     "flags",
     "has_draft",
+    "raw_enquiry",
     "summary",
 ]
 
@@ -57,6 +58,11 @@ def flatten(row: dict) -> dict:
         "missing_info": missing_info["evidence_attached"] if missing_info else "-",
         "flags": "; ".join(row["flags"]) or "-",
         "has_draft": bool(row["suggested_response_draft"]),
+        # The student's own words (raw_enquiry, from body) next to the
+        # model's paraphrase (summary) -- so a reader can compare what was
+        # actually said against how the model characterised it, not just
+        # trust the summary.
+        "raw_enquiry": row["body"],
         "summary": row["summary"],
     }
 
