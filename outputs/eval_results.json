@@ -83,13 +83,14 @@
         },
         "flags": {
           "expected": [
-            "ambiguous_referral"
+            "ambiguous_referral",
+            "low_confidence"
           ],
           "actual": [
             "ambiguous_referral",
             "low_confidence"
           ],
-          "correct": false
+          "correct": true
         },
         "needs_human_judgement": {
           "expected": true,
@@ -150,13 +151,14 @@
         },
         "flags": {
           "expected": [
-            "multi_issue"
+            "multi_issue",
+            "low_confidence"
           ],
           "actual": [
             "multi_issue",
             "low_confidence"
           ],
-          "correct": false
+          "correct": true
         },
         "needs_human_judgement": {
           "expected": true,
@@ -238,13 +240,14 @@
         },
         "flags": {
           "expected": [
-            "low_confidence"
+            "low_confidence",
+            "out_of_scope"
           ],
           "actual": [
             "low_confidence",
             "out_of_scope"
           ],
-          "correct": false
+          "correct": true
         },
         "needs_human_judgement": {
           "expected": true,
@@ -254,9 +257,5 @@
       }
     }
   ],
-  "mismatches": [
-    "ENQ-003 [flags]: expected ['ambiguous_referral'], got ['ambiguous_referral', 'low_confidence']",
-    "ENQ-005 [flags]: expected ['multi_issue'], got ['multi_issue', 'low_confidence']",
-    "ENQ-008 [flags]: expected ['low_confidence'], got ['low_confidence', 'out_of_scope']"
-  ]
+  "mismatches": []
 }

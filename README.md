@@ -32,8 +32,10 @@ without touching `outputs/`. `export_table.py` flattens `results.json`
 into `outputs/results_table.md` / `.csv` -- one row per enquiry.
 `evaluate.py` scores actual output against each enquiry's `expected_*`
 fields in `data/sample_enquiries.json` and prints a per-field scorecard
-plus a list of mismatches -- see WRITEUP.md's "Evaluation" section for the
-field semantics and why the answer key ships unfilled (`null`) by design.
+plus a list of mismatches -- currently 8/8 on category, team, flags and
+needs_human_judgement. See WRITEUP.md's "Evaluation" section for the field
+semantics and the three answer-key gaps the first real run caught (fixed
+in the answer key, not the code).
 
 Client selection (`triage_agent/client_selection.py`), checked in this
 order:
@@ -64,8 +66,8 @@ guidance/
   luu_vs_counselling_independence.md   sourced excerpt: internal vs external
   retrieve.py     looks up the right excerpt in code, not via the LLM
 data/sample_enquiries.json   the 8 test enquiries (5 from the brief + 3 added
-                              for coverage), each with expected_* answer-key
-                              fields for evaluate.py (unfilled by default)
+                              for coverage), each with a filled-in expected_*
+                              answer key for evaluate.py (currently 8/8)
 scripts/run_tests.py         batch: runs all 8, saves outputs/results.json
 scripts/try_one.py           interactive: triage one pasted enquiry
 scripts/export_table.py      renders results.json as a markdown/CSV table

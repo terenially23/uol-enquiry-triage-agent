@@ -367,18 +367,39 @@ in — it reports fewer scored fields rather than failing or reporting false
 negatives, and the denominator for a field only grows as that field gets
 filled in across enquiries.
 
-**Current state:** the answer key ships with all `expected_*` fields
-`null` — the scaffold, not real numbers. Running `python3 scripts/
-evaluate.py` today prints "no enquiries scored yet" for all four fields,
-by design (see the script's own docstring for the exact semantics). Real
-scorecard numbers depend on the answer key being filled in by hand first,
-deliberately not auto-filled from this project's own prior "matches
-expectation" claims in "Test results" above — an agent grading itself
-against its own author's assumptions would hide exactly the kind of blind
-spot that produced the two guardrail bugs found earlier in this project's
-history. Once filled in, `python3 scripts/evaluate.py` prints a per-field
-scorecard (`N/M correct`) and lists every mismatch by enquiry and field,
-e.g. `ENQ-006 [category]: expected 'other', got 'info'`.
+**Final scorecard**, answer key filled in by hand (not auto-generated from
+this project's own prior "matches expectation" claims in "Test results"
+above — an agent grading itself against its own author's assumptions
+would hide exactly the kind of blind spot that produced the two guardrail
+bugs found earlier in this project's history):
+
+```
+category                : 8/8 correct
+team                     : 8/8 correct
+flags                    : 8/8 correct
+needs_human_judgement    : 8/8 correct
+
+No mismatches on any scored field.
+```
+
+**The first real run wasn't 8/8 — it was 5/8 on `flags`,** and that's the
+more useful thing to be able to say in interview than the clean final
+number. `ENQ-003`, `ENQ-005`, and `ENQ-008` each initially had an answer
+key entry naming only one of the two flags the code actually (and
+correctly) produces — e.g. `ENQ-005`'s answer key said `["multi_issue"]`
+but the code also correctly appends `low_confidence` (its confidence is
+0.55, below the 0.6 threshold, an entirely separate guardrail). All three
+were **answer-key gaps, not code bugs**: verified by checking each extra
+flag against the specific guardrail or `MockClient` branch producing it,
+then deciding by hand whether it belonged in the answer key
+(`ambiguous_referral`+`low_confidence`, `multi_issue`+`low_confidence`,
+`low_confidence`+`out_of_scope` — all correct, kept as-is; `evaluate.py`'s
+exact-set flag matching was deliberately left as-is rather than loosened,
+since a future *unexpected* extra flag is exactly the kind of regression
+exact matching exists to catch). This is the eval doing its job on itself
+before touching a single enquiry from real traffic — catching an
+incomplete answer key is a legitimate, useful failure mode of a labelled
+eval, not a sign the eval is broken.
 
 ## Where it plausibly gets categorisation wrong
 

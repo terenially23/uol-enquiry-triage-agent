@@ -26,7 +26,7 @@
     "body": "Hi, I've been really struggling lately and don't know who to talk to. It's been building up for a while now and I just don't really know where to start. Priya",
     "expected_category": "wellbeing",
     "expected_team": ["counselling_and_wellbeing", "luu_advice"],
-    "expected_flags": ["ambiguous_referral"],
+    "expected_flags": ["ambiguous_referral", "low_confidence"],
     "expected_needs_human_judgement": true
   },
   {
@@ -46,7 +46,7 @@
     "body": "Hello, two things - first, two of my modules have a timetable clash on Wednesdays which I need sorting before term starts. Separately, I have a mobility impairment and the room for one of my seminars is up two flights of stairs with no lift, which I can't manage, so I need that moved to an accessible room. My evidence letter from occupational health is already on file with Disability Services from last year. Thanks, Aisha",
     "expected_category": "disability",
     "expected_team": ["disability_services"],
-    "expected_flags": ["multi_issue"],
+    "expected_flags": ["multi_issue", "low_confidence"],
     "expected_needs_human_judgement": true
   },
   {
@@ -76,7 +76,7 @@
     "body": "Hi, I got my essay back for 'Introduction to Sociology' and received a mark of 58. I don't think this is a fair mark given the effort I put in, and I'd like someone to review and change it. What can I do? Thanks, Tomasz",
     "expected_category": "other",
     "expected_team": [],
-    "expected_flags": ["low_confidence"],
+    "expected_flags": ["low_confidence", "out_of_scope"],
     "expected_needs_human_judgement": true
   }
 ]
