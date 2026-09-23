@@ -138,20 +138,65 @@ and retry it, not silently swallow the failure.
 
 ## What the guardrail layer does (and why it's not just prompting)
 
-`agent.py` runs three checks after every LLM response, independent of what
+`agent.py` runs four checks after every LLM response, independent of what
 the model says:
 
 1. **Never a disability draft without confirmed evidence.** If
-   `evidence_attached != "yes"`, any draft that reads like a promise
-   (`"we will arrange..."`, `"this has been arranged"`) is discarded.
-2. **Confidence threshold (0.6).** Below it, `suggested_response_draft` is
+   `evidence_attached != "yes"`, `suggested_response_draft` is
+   unconditionally overwritten with a fixed, code-generated evidence-request
+   template (`_evidence_request_draft()`), not left to whatever the model
+   wrote. **This was a real bug, caught on a live Groq run, not a
+   hypothetical**, and it went through two fix attempts before landing
+   here:
+   - *v1 (original):* only cleared the draft if its wording matched one of
+     five hardcoded phrases (`"we will arrange..."`, `"this has been
+     arranged"`, etc.) via a `_looks_like_a_promise()` helper. A real
+     model drafted a differently worded promise ("your seminar room is
+     being moved...") that matched none of them and went straight
+     through — while `missing_info` correctly said `evidence_attached:
+     unclear` in the same output. Two guardrails disagreeing with each
+     other in a single result is a bug, not a corner case.
+   - *v2 (first fix, briefly live):* unconditionally nulled the draft
+     whenever evidence wasn't confirmed. This closed the promise leak but
+     over-corrected: it also nulled the *legitimate* case the brief
+     explicitly asks for (enquiry 2 — a draft that asks for evidence
+     rather than promising an adjustment), which `MockClient` and the
+     system prompt already produced correctly most of the time. Caught
+     before it shipped, by re-running the full batch and checking enquiry
+     2 against the brief's own stated expectation.
+   - *v3 (current):* since the real failure mode is "can't trust the
+     model's wording to be safe," the fix stops trusting it for this one
+     piece of text — evidence-not-confirmed always gets the same
+     code-generated, deterministic evidence-request draft, regardless of
+     what (if anything) the model drafted. Guarantees both properties at
+     once: never a promise, and always a usable, safe draft rather than a
+     silent "deferred to human."
+2. **Financially sensitive enquiries never carry a draft.** If
+   `category == "funding"` or `"sensitive_financial"` is in `flags`,
+   `suggested_response_draft` is unconditionally cleared. **Also a real
+   bug, also caught on a live run:** this suppression previously existed
+   only as system-prompt rule 4 ("set it to null if... sensitive"), with
+   no corresponding code guardrail — `MockClient` hardcoded `None` for its
+   funding branch, which made offline runs look consistent, but a real LLM
+   call was free to draft one anyway whenever it judged confidence high
+   enough to ignore that instruction. That's why the same enquiry
+   suppressed its draft in one Groq run and drafted one in the next: there
+   was nothing in code enforcing it either way.
+3. **Confidence threshold (0.6).** Below it, `suggested_response_draft` is
    cleared and `needs_human_judgement` is forced `True`, whatever the model
    drafted. This is the concrete answer to "what would you do to catch a
    plausible misclassification" (see below).
-3. **Ambiguous internal/external routing never carries a draft.** The
+4. **Ambiguous internal/external routing never carries a draft.** The
    Counselling-vs-LUU case specifically, because the two options have
    different data-handling implications and a wrong auto-reply there is
    worse than a wrong auto-reply on a timetable query.
+
+The lesson from 1 and 2, worth saying plainly in interview: a guardrail
+that's conditional on the *shape* of the model's output (phrasing, or an
+instruction the model may or may not follow) isn't really a guardrail —
+it's a coin flip that happens to land right most of the time. The fix in
+both cases was to gate on structured fields the code already controls
+(`evidence_attached`, `category`, `flags`) instead of on free text.
 
 This split matters for the interview: prompting can ask a model to behave
 this way, and mostly it will — but "mostly" isn't good enough for the two

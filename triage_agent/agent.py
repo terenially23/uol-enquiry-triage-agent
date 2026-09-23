@@ -30,7 +30,7 @@ class TriageAgent:
     def triage(self, sender_name: str, sender_email: str, body: str, enquiry_id: str | None = None) -> TriageResult:
         raw = self.llm_client.categorise(sender_name=sender_name, sender_email=sender_email, body=body)
         result = self._parse(raw, enquiry_id or f"ENQ-{uuid.uuid4().hex[:8]}")
-        self._apply_guardrails(result, body)
+        self._apply_guardrails(result, sender_name)
         return result
 
     # -- parsing --------------------------------------------------------
@@ -87,20 +87,45 @@ class TriageAgent:
 
     # -- guardrails -------------------------------------------------------
 
-    def _apply_guardrails(self, result: TriageResult, body: str) -> None:
+    def _apply_guardrails(self, result: TriageResult, sender_name: str) -> None:
         result.requires_human_review = True  # hard constraint, non-negotiable
 
         # Guardrail: never let a drafted response promise a disability
         # adjustment when evidence isn't confirmed attached/on file.
+        # Unconditional on evidence_ok, and the replacement draft is
+        # generated here in code, not left to the model. An earlier version
+        # only nulled the draft if its wording matched a hardcoded phrase
+        # list ("we will arrange...", etc.) via a _looks_like_a_promise()
+        # helper -- a real LLM response worded differently sailed straight
+        # through it. Simply nulling unconditionally was the next attempt,
+        # but that also swallowed the legitimate case: the brief wants a
+        # SAFE draft here (one that asks for evidence), not no draft at
+        # all, and MockClient/the system prompt already produce that safe
+        # wording correctly most of the time. Since the actual failure mode
+        # is "can't trust the model's wording to be safe," the fix is to
+        # stop trusting it for this one piece of text: overwrite with a
+        # fixed, deterministic evidence-request template whenever evidence
+        # isn't confirmed, so the guardrail no longer depends on what the
+        # model wrote at all.
         if result.category == "disability":
             evidence_ok = result.missing_info and result.missing_info.evidence_attached == "yes"
             if not evidence_ok:
                 if result.missing_info is None:
                     result.missing_info = MissingInfo(evidence_attached="unclear", details="Not assessed by model; defaulting to unclear as a precaution.")
-                if result.suggested_response_draft and _looks_like_a_promise(result.suggested_response_draft):
-                    result.suggested_response_draft = None
+                result.suggested_response_draft = _evidence_request_draft(sender_name)
                 if "missing_evidence" not in result.flags:
                     result.flags.append("missing_evidence")
+
+        # Guardrail: financially sensitive enquiries never carry an
+        # unreviewed auto-draft, regardless of confidence or wording. This
+        # was previously only requested via the system prompt (rule 4) and
+        # left the model free to draft one anyway -- suppression flip-flopped
+        # between runs depending on whether the model complied that time.
+        # Enforced here in code so it's unconditional.
+        if result.category == "funding" or "sensitive_financial" in result.flags:
+            result.suggested_response_draft = None
+            if "sensitive_financial" not in result.flags:
+                result.flags.append("sensitive_financial")
 
         # Guardrail: low-confidence categorisations should never carry an
         # unreviewed auto-draft, and should be visibly flagged for a human
@@ -127,7 +152,18 @@ class TriageAgent:
         result.source_citation = citation_for(result.category, result.internal_or_external)
 
 
-def _looks_like_a_promise(draft: str) -> bool:
-    lowered = draft.lower()
-    promise_phrases = ["we will arrange", "you will get extra time", "this has been arranged", "we've arranged", "we have arranged"]
-    return any(p in lowered for p in promise_phrases)
+def _evidence_request_draft(sender_name: str) -> str:
+    """Fixed, code-generated draft used whenever a disability enquiry's
+    evidence isn't confirmed -- deliberately not model-generated text, so
+    it can never phrase itself as a promise. See guidance/disability_evidence.md
+    for the sourced fact this reflects (registration requires "supporting
+    information about your disability")."""
+    return (
+        f"Dear {sender_name},\n\nThank you for getting in touch about exam "
+        "adjustments. To arrange these we first need supporting evidence, "
+        "such as a diagnostic assessment report or a letter from a "
+        "healthcare professional. Could you please attach this to your "
+        "reply, or let us know if you already have evidence on file with "
+        "us? Once we have this we can look at putting a Student Support "
+        "Plan in place.\n\nBest wishes,\nDisability Services"
+    )
