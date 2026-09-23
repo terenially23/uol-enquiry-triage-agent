@@ -143,6 +143,19 @@ class TriageAgent:
             result.suggested_response_draft = None
             result.needs_human_judgement = True
 
+        # Guardrail: multi-issue enquiries never carry an auto-draft. A
+        # single draft is written against the primary category/team and
+        # says nothing about whatever's in additional_issues, so it can't
+        # safely represent both routed issues at once. Unconditional on
+        # additional_issues/flags, not on confidence -- found as a gap
+        # during testing, not designed in from the start: ENQ-005 happened
+        # to also trip the confidence-threshold guardrail, which masked
+        # that nothing here actually checked for multi-issue enquiries. A
+        # multi-issue result with confidence >= 0.6 would previously have
+        # sailed through with an unlabelled, partial draft.
+        if result.additional_issues or "multi_issue" in result.flags:
+            result.suggested_response_draft = None
+
         # Sanity check: suggested_team entries should be known team keys.
         result.suggested_team = [t for t in result.suggested_team if t in TEAMS] or result.suggested_team
 

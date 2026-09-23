@@ -190,13 +190,49 @@ the model says:
    Counselling-vs-LUU case specifically, because the two options have
    different data-handling implications and a wrong auto-reply there is
    worse than a wrong auto-reply on a timetable query.
+5. **Multi-issue enquiries never carry a draft.** If `additional_issues`
+   is non-empty or `"multi_issue"` is in `flags`, `suggested_response_draft`
+   is unconditionally cleared, regardless of confidence. **Also found as a
+   gap during testing, not designed in from the start** — same pattern as
+   the funding guardrail above. ENQ-005's null draft looked correct in
+   every run, but for the wrong reason: it was only null because its
+   confidence (0.55) happened to also trip the *confidence* guardrail.
+   Nothing checked for multi-issue enquiries specifically. A multi-issue
+   result at confidence ≥ 0.6 would have sailed through with a single
+   draft that addresses only the primary category and says nothing about
+   whatever's in `additional_issues` — a single draft can't safely
+   represent two independently-routed issues, so this needed to be its own
+   check, not a side effect of a different one. Caught by asking "is this
+   guardrail deliberate or incidental?" and checking the code rather than
+   the output, then confirmed with a unit test that isolates it: a
+   multi-issue result constructed at confidence=0.9 specifically, so the
+   confidence guardrail provably doesn't fire, and the draft is still
+   cleared (`tests/test_guardrails.py::TestMultiIssueGuardrail`).
 
-The lesson from 1 and 2, worth saying plainly in interview: a guardrail
-that's conditional on the *shape* of the model's output (phrasing, or an
-instruction the model may or may not follow) isn't really a guardrail —
-it's a coin flip that happens to land right most of the time. The fix in
-both cases was to gate on structured fields the code already controls
-(`evidence_attached`, `category`, `flags`) instead of on free text.
+The lesson from 1, 2, and 5, worth saying plainly in interview: a
+guardrail that's conditional on the *shape* of the model's output
+(phrasing, an instruction the model may or may not follow, or another
+guardrail's unrelated threshold happening to also catch it) isn't really a
+guardrail — it's a coin flip that happens to land right most of the time.
+Every fix here was the same move: gate on a structured field the code
+already controls (`evidence_attached`, `category`, `flags`,
+`additional_issues`) instead of on free text or on borrowing another
+check's side effect.
+
+## Testing the guardrails directly
+
+`tests/test_guardrails.py` (`python3 -m unittest discover -s tests`) unit-
+tests `_apply_guardrails` in isolation via a `StubClient` that returns a
+fixed payload, rather than going through a real or mock LLM call. Each
+test is a regression test for a specific bug found in this project, not a
+general "does it work" check — the point is that every one of them
+reproduces the exact shape of output that previously slipped through
+(a differently worded promise, high confidence masking a missing check,
+a model ignoring a prompt-only instruction) and asserts the guardrail
+catches it. This is deliberately separate from `run_tests.py`/`try_one.py`,
+which exercise the full pipeline including the LLM call and are for
+demonstrating and spot-checking behaviour, not for pinning down exactly
+which guardrail is responsible for a given null draft.
 
 This split matters for the interview: prompting can ask a model to behave
 this way, and mostly it will — but "mostly" isn't good enough for the two
@@ -252,7 +288,10 @@ enquiries turned out to be common.
    `info` (timetable), `additional_issues` carries the disability access
    issue with its own team/urgency, `flags=["multi_issue", ...]`, no
    auto-draft. Matches expectation — the two issues are visibly split
-   rather than the agent picking one.
+   rather than the agent picking one. The no-auto-draft here is now the
+   dedicated multi-issue guardrail (#5 above), not a side effect of this
+   enquiry's confidence also being low — see that section for why the
+   distinction matters.
 
 Run `python3 scripts/run_tests.py` to reproduce; it prints raw enquiry text
 next to the structured output for each case and writes the full JSON.

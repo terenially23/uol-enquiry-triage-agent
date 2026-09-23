@@ -19,6 +19,7 @@ export GROQ_API_KEY=gsk_...            # this demo's actual setup -- free tier
 python3 scripts/run_tests.py           # batch: all 5 sample enquiries
 python3 scripts/try_one.py             # interactive: paste one enquiry
 python3 scripts/export_table.py        # markdown + CSV table from results.json
+python3 -m unittest discover -s tests  # guardrail unit tests, no API key needed
 ```
 
 `run_tests.py` runs the 5 sample enquiries in `data/sample_enquiries.json`
@@ -61,6 +62,7 @@ data/sample_enquiries.json   the 5 test enquiries from the brief
 scripts/run_tests.py         batch: runs all 5, saves outputs/results.json
 scripts/try_one.py           interactive: triage one pasted enquiry
 scripts/export_table.py      renders results.json as a markdown/CSV table
+tests/test_guardrails.py     unit tests for _apply_guardrails, stubbed LLM
 outputs/                     saved sample output (committed for review)
 ```
 
