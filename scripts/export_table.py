@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Render outputs/results.json as a flat table (markdown + CSV) -- one row
-per enquiry, for putting in a slide. The brief requires results shown "in
-a list, table, or another structured format"; results.json on its own is
-structured but not a table, so this is that view.
+per enquiry, every field in the record, for putting in a slide. The brief
+requires results shown "in a list, table, or another structured format";
+results.json on its own is structured but not a table, so this is that
+view.
 
 Usage:
     python3 scripts/run_tests.py        # generates outputs/results.json first
@@ -24,46 +25,80 @@ RESULTS_PATH = ROOT / "outputs" / "results.json"
 MD_OUTPUT_PATH = ROOT / "outputs" / "results_table.md"
 CSV_OUTPUT_PATH = ROOT / "outputs" / "results_table.csv"
 
+# Every field currently in a results.json record, in the order it appears
+# there (enquiry fields first, then the TriageResult fields) -- kept in
+# sync by hand, not derived from the dataclass, so a schema change here is
+# a deliberate edit, not a silent drop.
 COLUMNS = [
     "enquiry_id",
-    "sender",
+    "sender_name",
+    "sender_email",
+    "body",
     "category",
     "confidence",
+    "summary",
     "suggested_team",
     "internal_or_external",
+    "missing_info",
+    "suggested_response_draft",
+    "requires_human_review",
     "urgency",
     "needs_human_judgement",
-    "missing_info",
+    "internal_note",
     "flags",
-    "has_draft",
-    "raw_enquiry",
-    "summary",
+    "additional_issues",
+    "source_citation",
 ]
+
+
+def _format_list(values: list[str]) -> str:
+    return "; ".join(values) if values else "-"
+
+
+def _format_missing_info(missing_info: dict | None) -> str:
+    if not missing_info:
+        return "-"
+    return f"evidence_attached={missing_info['evidence_attached']} ({missing_info.get('details') or '-'})"
+
+
+def _format_additional_issues(issues: list[dict]) -> str:
+    if not issues:
+        return "-"
+    parts = [
+        f"{issue['category']} (team={_format_list(issue['suggested_team'])}, "
+        f"urgency={issue['urgency']}): {issue['summary']}"
+        for issue in issues
+    ]
+    return " | ".join(parts)
 
 
 def flatten(row: dict) -> dict:
     # row is already a flat record (run_tests.py merges the enquiry's own
     # fields -- sender_name/sender_email/body -- directly into the same
-    # dict as the triage result), so this just re-shapes it for the table.
-    missing_info = row.get("missing_info")
+    # dict as the triage result); this just formats each value for a
+    # single table cell. Multi-line fields (body, suggested_response_draft,
+    # internal_note) keep real newlines here -- fine for CSV, which quotes
+    # them correctly; to_markdown() below escapes them separately for
+    # display, since a raw newline breaks a markdown table row.
     return {
         "enquiry_id": row["enquiry_id"],
-        "sender": f"{row['sender_name']} <{row['sender_email']}>",
+        "sender_name": row["sender_name"],
+        "sender_email": row["sender_email"],
+        "body": row["body"],
         "category": row["category"],
         "confidence": f"{row['confidence']:.2f}",
-        "suggested_team": "; ".join(row["suggested_team"]),
+        "summary": row["summary"],
+        "suggested_team": _format_list(row["suggested_team"]),
         "internal_or_external": row["internal_or_external"],
+        "missing_info": _format_missing_info(row.get("missing_info")),
+        "suggested_response_draft": row["suggested_response_draft"] or "-- deferred to human --",
+        "requires_human_review": row["requires_human_review"],
         "urgency": row["urgency"],
         "needs_human_judgement": row["needs_human_judgement"],
-        "missing_info": missing_info["evidence_attached"] if missing_info else "-",
-        "flags": "; ".join(row["flags"]) or "-",
-        "has_draft": bool(row["suggested_response_draft"]),
-        # The student's own words (raw_enquiry, from body) next to the
-        # model's paraphrase (summary) -- so a reader can compare what was
-        # actually said against how the model characterised it, not just
-        # trust the summary.
-        "raw_enquiry": row["body"],
-        "summary": row["summary"],
+        "internal_note": row["internal_note"] or "-",
+        "flags": _format_list(row["flags"]),
+        "additional_issues": _format_additional_issues(row["additional_issues"]),
+        "source_citation": row["source_citation"] or "-",
     }
 
 
@@ -72,7 +107,10 @@ def to_markdown(rows: list[dict]) -> str:
     sep = "| " + " | ".join("---" for _ in COLUMNS) + " |"
     lines = [header, sep]
     for row in rows:
-        cells = [str(row[col]).replace("|", "\\|") for col in COLUMNS]
+        # "|" would split a cell into extra columns; a raw newline would
+        # end the row early -- both escaped for markdown display only
+        # (the CSV keeps the real characters).
+        cells = [str(row[col]).replace("|", "\\|").replace("\n", "<br>") for col in COLUMNS]
         lines.append("| " + " | ".join(cells) + " |")
     return "\n".join(lines)
 
@@ -89,7 +127,12 @@ def main() -> None:
     MD_OUTPUT_PATH.write_text(md + "\n")
 
     with CSV_OUTPUT_PATH.open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=COLUMNS)
+        # QUOTE_ALL, not the csv module's QUOTE_MINIMAL default: several
+        # columns (body, suggested_response_draft, internal_note,
+        # additional_issues) routinely contain commas, quotes and embedded
+        # newlines, and this makes every field's quoting explicit rather
+        # than relying on the reader trusting minimal-quoting heuristics.
+        writer = csv.DictWriter(f, fieldnames=COLUMNS, quoting=csv.QUOTE_ALL)
         writer.writeheader()
         writer.writerows(rows)
 
