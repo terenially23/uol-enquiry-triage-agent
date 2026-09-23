@@ -99,6 +99,23 @@ TEAMS: dict[str, Team] = {
             "a named academic who knows the student's programme."
         ),
     ),
+    "it_helpdesk": Team(
+        key="it_helpdesk",
+        name="IT Helpdesk / Online Learning Support",
+        internal_or_external="internal",
+        description=(
+            "Account access issues (e.g. Minerva/VLE logins, password "
+            "resets, locked accounts), online learning platform problems, "
+            "and general IT support for accessing University systems and "
+            "coursework submission portals."
+        ),
+        notes=(
+            "Often time-sensitive -- account/access issues close to a "
+            "deadline should be treated as urgent even though the request "
+            "itself is routine and safe to auto-draft generic "
+            "self-service steps for."
+        ),
+    ),
 }
 
 CATEGORY_TO_TEAM = {

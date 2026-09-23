@@ -1,0 +1,233 @@
+{
+  "rows": [
+    {
+      "enquiry_id": "ENQ-001",
+      "fields": {
+        "category": {
+          "expected": null,
+          "actual": "info",
+          "correct": null
+        },
+        "team": {
+          "expected": null,
+          "actual": [
+            "student_information_service"
+          ],
+          "correct": null
+        },
+        "flags": {
+          "expected": null,
+          "actual": [],
+          "correct": null
+        },
+        "needs_human_judgement": {
+          "expected": null,
+          "actual": false,
+          "correct": null
+        }
+      }
+    },
+    {
+      "enquiry_id": "ENQ-002",
+      "fields": {
+        "category": {
+          "expected": null,
+          "actual": "disability",
+          "correct": null
+        },
+        "team": {
+          "expected": null,
+          "actual": [
+            "disability_services"
+          ],
+          "correct": null
+        },
+        "flags": {
+          "expected": null,
+          "actual": [
+            "missing_evidence"
+          ],
+          "correct": null
+        },
+        "needs_human_judgement": {
+          "expected": null,
+          "actual": false,
+          "correct": null
+        }
+      }
+    },
+    {
+      "enquiry_id": "ENQ-003",
+      "fields": {
+        "category": {
+          "expected": null,
+          "actual": "wellbeing",
+          "correct": null
+        },
+        "team": {
+          "expected": null,
+          "actual": [
+            "counselling_and_wellbeing",
+            "luu_advice"
+          ],
+          "correct": null
+        },
+        "flags": {
+          "expected": null,
+          "actual": [
+            "ambiguous_referral",
+            "low_confidence"
+          ],
+          "correct": null
+        },
+        "needs_human_judgement": {
+          "expected": null,
+          "actual": true,
+          "correct": null
+        }
+      }
+    },
+    {
+      "enquiry_id": "ENQ-004",
+      "fields": {
+        "category": {
+          "expected": null,
+          "actual": "funding",
+          "correct": null
+        },
+        "team": {
+          "expected": null,
+          "actual": [
+            "student_funding_team"
+          ],
+          "correct": null
+        },
+        "flags": {
+          "expected": null,
+          "actual": [
+            "sensitive_financial"
+          ],
+          "correct": null
+        },
+        "needs_human_judgement": {
+          "expected": null,
+          "actual": false,
+          "correct": null
+        }
+      }
+    },
+    {
+      "enquiry_id": "ENQ-005",
+      "fields": {
+        "category": {
+          "expected": null,
+          "actual": "info",
+          "correct": null
+        },
+        "team": {
+          "expected": null,
+          "actual": [
+            "student_information_service"
+          ],
+          "correct": null
+        },
+        "flags": {
+          "expected": null,
+          "actual": [
+            "multi_issue",
+            "low_confidence"
+          ],
+          "correct": null
+        },
+        "needs_human_judgement": {
+          "expected": null,
+          "actual": true,
+          "correct": null
+        }
+      }
+    },
+    {
+      "enquiry_id": "ENQ-006",
+      "fields": {
+        "category": {
+          "expected": null,
+          "actual": "other",
+          "correct": null
+        },
+        "team": {
+          "expected": null,
+          "actual": [
+            "it_helpdesk"
+          ],
+          "correct": null
+        },
+        "flags": {
+          "expected": null,
+          "actual": [],
+          "correct": null
+        },
+        "needs_human_judgement": {
+          "expected": null,
+          "actual": false,
+          "correct": null
+        }
+      }
+    },
+    {
+      "enquiry_id": "ENQ-007",
+      "fields": {
+        "category": {
+          "expected": null,
+          "actual": "info",
+          "correct": null
+        },
+        "team": {
+          "expected": null,
+          "actual": [
+            "student_information_service"
+          ],
+          "correct": null
+        },
+        "flags": {
+          "expected": null,
+          "actual": [],
+          "correct": null
+        },
+        "needs_human_judgement": {
+          "expected": null,
+          "actual": false,
+          "correct": null
+        }
+      }
+    },
+    {
+      "enquiry_id": "ENQ-008",
+      "fields": {
+        "category": {
+          "expected": null,
+          "actual": "other",
+          "correct": null
+        },
+        "team": {
+          "expected": null,
+          "actual": [],
+          "correct": null
+        },
+        "flags": {
+          "expected": null,
+          "actual": [
+            "low_confidence",
+            "out_of_scope"
+          ],
+          "correct": null
+        },
+        "needs_human_judgement": {
+          "expected": null,
+          "actual": true,
+          "correct": null
+        }
+      }
+    }
+  ],
+  "mismatches": []
+}

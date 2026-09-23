@@ -4,7 +4,11 @@
       "enquiry_id": "ENQ-001",
       "sender_name": "Megan Ashworth",
       "sender_email": "ml19ma@leeds.ac.uk",
-      "body": "Hi, I recently moved house and need to update my home address on the system. How do I do this? Thanks, Megan"
+      "body": "Hi, I recently moved house and need to update my home address on the system. How do I do this? Thanks, Megan",
+      "expected_category": null,
+      "expected_team": null,
+      "expected_flags": null,
+      "expected_needs_human_judgement": null
     },
     "triage_result": {
       "enquiry_id": "ENQ-001",
@@ -31,7 +35,11 @@
       "enquiry_id": "ENQ-002",
       "sender_name": "Josh Whitfield",
       "sender_email": "el21jw@leeds.ac.uk",
-      "body": "Hello, I have dyslexia and I think I need extra time in my exams this year. How do I go about arranging this? I haven't done this before so not sure what I need to send over. Thanks, Josh"
+      "body": "Hello, I have dyslexia and I think I need extra time in my exams this year. How do I go about arranging this? I haven't done this before so not sure what I need to send over. Thanks, Josh",
+      "expected_category": null,
+      "expected_team": null,
+      "expected_flags": null,
+      "expected_needs_human_judgement": null
     },
     "triage_result": {
       "enquiry_id": "ENQ-002",
@@ -63,7 +71,11 @@
       "enquiry_id": "ENQ-003",
       "sender_name": "Priya Nandakumar",
       "sender_email": "bs20pn@leeds.ac.uk",
-      "body": "Hi, I've been really struggling lately and don't know who to talk to. It's been building up for a while now and I just don't really know where to start. Priya"
+      "body": "Hi, I've been really struggling lately and don't know who to talk to. It's been building up for a while now and I just don't really know where to start. Priya",
+      "expected_category": null,
+      "expected_team": null,
+      "expected_flags": null,
+      "expected_needs_human_judgement": null
     },
     "triage_result": {
       "enquiry_id": "ENQ-003",
@@ -94,7 +106,11 @@
       "enquiry_id": "ENQ-004",
       "sender_name": "Callum O'Reilly",
       "sender_email": "pg22co@leeds.ac.uk",
-      "body": "Hi, I'm having trouble paying rent this month and I'm really worried about it. Is there any support available for this? Thanks, Callum"
+      "body": "Hi, I'm having trouble paying rent this month and I'm really worried about it. Is there any support available for this? Thanks, Callum",
+      "expected_category": null,
+      "expected_team": null,
+      "expected_flags": null,
+      "expected_needs_human_judgement": null
     },
     "triage_result": {
       "enquiry_id": "ENQ-004",
@@ -123,7 +139,11 @@
       "enquiry_id": "ENQ-005",
       "sender_name": "Aisha Rahman",
       "sender_email": "sc19ar@leeds.ac.uk",
-      "body": "Hello, two things - first, two of my modules have a timetable clash on Wednesdays which I need sorting before term starts. Separately, I have a mobility impairment and the room for one of my seminars is up two flights of stairs with no lift, which I can't manage, so I need that moved to an accessible room. My evidence letter from occupational health is already on file with Disability Services from last year. Thanks, Aisha"
+      "body": "Hello, two things - first, two of my modules have a timetable clash on Wednesdays which I need sorting before term starts. Separately, I have a mobility impairment and the room for one of my seminars is up two flights of stairs with no lift, which I can't manage, so I need that moved to an accessible room. My evidence letter from occupational health is already on file with Disability Services from last year. Thanks, Aisha",
+      "expected_category": null,
+      "expected_team": null,
+      "expected_flags": null,
+      "expected_needs_human_judgement": null
     },
     "triage_result": {
       "enquiry_id": "ENQ-005",
@@ -157,6 +177,100 @@
           "urgency": "medium"
         }
       ],
+      "source_citation": null
+    }
+  },
+  {
+    "enquiry": {
+      "enquiry_id": "ENQ-006",
+      "sender_name": "Daniel Osei",
+      "sender_email": "cv23do@leeds.ac.uk",
+      "body": "Hi, I can't log into Minerva - it says my account is locked. I have an assignment due Friday and really need to get this sorted quickly. Thanks, Daniel",
+      "expected_category": null,
+      "expected_team": null,
+      "expected_flags": null,
+      "expected_needs_human_judgement": null
+    },
+    "triage_result": {
+      "enquiry_id": "ENQ-006",
+      "category": "other",
+      "confidence": 0.85,
+      "summary": "Student is locked out of their Minerva account with an assignment deadline approaching.",
+      "suggested_team": [
+        "it_helpdesk"
+      ],
+      "internal_or_external": "internal",
+      "missing_info": null,
+      "suggested_response_draft": "Dear Daniel Osei,\n\nSorry to hear you're locked out. Please try resetting your password via the self-service portal (password.leeds.ac.uk) first, as this resolves most account lockouts immediately. If that doesn't work, or if you're still locked out shortly before a deadline, please contact the IT Helpdesk directly so they can prioritise this for you.\n\nBest wishes,\nIT Helpdesk",
+      "requires_human_review": true,
+      "urgency": "high",
+      "needs_human_judgement": false,
+      "internal_note": "No category in the schema maps cleanly to IT/account-access issues; using 'other' with a dedicated team.",
+      "flags": [],
+      "additional_issues": [],
+      "source_citation": null
+    }
+  },
+  {
+    "enquiry": {
+      "enquiry_id": "ENQ-007",
+      "sender_name": "Freya Sutcliffe",
+      "sender_email": "hy22fs@leeds.ac.uk",
+      "body": "Hi, are the library opening hours extended during the exam period? I wanted to plan my revision schedule around this. Thanks, Freya",
+      "expected_category": null,
+      "expected_team": null,
+      "expected_flags": null,
+      "expected_needs_human_judgement": null
+    },
+    "triage_result": {
+      "enquiry_id": "ENQ-007",
+      "category": "info",
+      "confidence": 0.9,
+      "summary": "Student is asking about extended library opening hours during the exam period.",
+      "suggested_team": [
+        "student_information_service"
+      ],
+      "internal_or_external": "internal",
+      "missing_info": null,
+      "suggested_response_draft": "Dear Freya Sutcliffe,\n\nThanks for your message. Library opening hours are extended during the exam period -- you can find the current opening hours for each campus library on the Library website, as these vary by site and by exact week. Let us know if you have any trouble finding this.\n\nBest wishes,\nStudent Information Service",
+      "requires_human_review": true,
+      "urgency": "low",
+      "needs_human_judgement": false,
+      "internal_note": null,
+      "flags": [],
+      "additional_issues": [],
+      "source_citation": null
+    }
+  },
+  {
+    "enquiry": {
+      "enquiry_id": "ENQ-008",
+      "sender_name": "Tomasz Nowicki",
+      "sender_email": "lw21tn@leeds.ac.uk",
+      "body": "Hi, I got my essay back for 'Introduction to Sociology' and received a mark of 58. I don't think this is a fair mark given the effort I put in, and I'd like someone to review and change it. What can I do? Thanks, Tomasz",
+      "expected_category": null,
+      "expected_team": null,
+      "expected_flags": null,
+      "expected_needs_human_judgement": null
+    },
+    "triage_result": {
+      "enquiry_id": "ENQ-008",
+      "category": "other",
+      "confidence": 0.35,
+      "summary": "Student disagrees with a mark and wants it reviewed/changed.",
+      "suggested_team": [],
+      "internal_or_external": "not_applicable",
+      "missing_info": null,
+      "suggested_response_draft": null,
+      "requires_human_review": true,
+      "urgency": "low",
+      "needs_human_judgement": true,
+      "internal_note": "This is an academic-judgement matter (a mark dispute), not a navigational or administrative enquiry. It doesn't cleanly match any of the covered categories or teams -- routing it confidently would mean guessing at the institution's formal mark-review/appeals process, which this tool has no grounded knowledge of. Deferring to a human rather than forcing a category.",
+      "flags": [
+        "low_confidence",
+        "out_of_scope"
+      ],
+      "additional_issues": [],
       "source_citation": null
     }
   }

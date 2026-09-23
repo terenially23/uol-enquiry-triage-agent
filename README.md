@@ -16,19 +16,24 @@ this prototype does not do.
 pip install -r requirements.txt        # only needed for the real LLM path
 export GROQ_API_KEY=gsk_...            # this demo's actual setup -- free tier
 # or: export ANTHROPIC_API_KEY=sk-...  # alternative -- see below
-python3 scripts/run_tests.py           # batch: all 5 sample enquiries
+python3 scripts/run_tests.py           # batch: all 8 sample enquiries
 python3 scripts/try_one.py             # interactive: paste one enquiry
 python3 scripts/export_table.py        # markdown + CSV table from results.json
+python3 scripts/evaluate.py            # scorecard against the hand-written answer key
 python3 -m unittest discover -s tests  # guardrail unit tests, no API key needed
 ```
 
-`run_tests.py` runs the 5 sample enquiries in `data/sample_enquiries.json`
+`run_tests.py` runs the 8 sample enquiries in `data/sample_enquiries.json`
 through the agent, prints a human-readable summary of each (raw enquiry
 text next to the agent's own output, deliberately, so a reviewer can
 spot-check), and saves full structured output to `outputs/results.json`.
 `try_one.py` does the same for a single custom enquiry you paste in,
 without touching `outputs/`. `export_table.py` flattens `results.json`
 into `outputs/results_table.md` / `.csv` -- one row per enquiry.
+`evaluate.py` scores actual output against each enquiry's `expected_*`
+fields in `data/sample_enquiries.json` and prints a per-field scorecard
+plus a list of mismatches -- see WRITEUP.md's "Evaluation" section for the
+field semantics and why the answer key ships unfilled (`null`) by design.
 
 Client selection (`triage_agent/client_selection.py`), checked in this
 order:
@@ -48,7 +53,7 @@ order:
 
 ```
 triage_agent/
-  routing.py          routing knowledge base (the 6 real Leeds services)
+  routing.py          routing knowledge base (7 real Leeds services)
   schema.py           structured output schema (dataclasses)
   llm_client.py       AnthropicClient / GroqClient (real) + MockClient (offline)
   client_selection.py picks a client from env vars (see priority above)
@@ -58,10 +63,13 @@ guidance/
   disability_evidence.md               sourced excerpt: evidence requirement
   luu_vs_counselling_independence.md   sourced excerpt: internal vs external
   retrieve.py     looks up the right excerpt in code, not via the LLM
-data/sample_enquiries.json   the 5 test enquiries from the brief
-scripts/run_tests.py         batch: runs all 5, saves outputs/results.json
+data/sample_enquiries.json   the 8 test enquiries (5 from the brief + 3 added
+                              for coverage), each with expected_* answer-key
+                              fields for evaluate.py (unfilled by default)
+scripts/run_tests.py         batch: runs all 8, saves outputs/results.json
 scripts/try_one.py           interactive: triage one pasted enquiry
 scripts/export_table.py      renders results.json as a markdown/CSV table
+scripts/evaluate.py          scores actual output against the answer key
 tests/test_guardrails.py     unit tests for _apply_guardrails, stubbed LLM
 outputs/                     saved sample output (committed for review)
 ```

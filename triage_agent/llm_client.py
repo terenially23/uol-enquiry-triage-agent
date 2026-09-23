@@ -309,6 +309,23 @@ class MockClient(LLMClient):
             term in text for term in ["rent", "afford", "money", "financ", "hardship", "student finance", "pay"]
         )
         has_academic_terms = any(term in text for term in ["module", "dissertation", "supervisor", "personal tutor"])
+        has_it_terms = any(
+            term in text
+            for term in [
+                "minerva", "locked out", "account is locked", "account locked", "can't log in",
+                "cannot log in", "log into", "login issue", "vle", "online learning", "password reset",
+            ]
+        )
+        # Checked ahead of has_academic_terms: an essay-mark dispute is an
+        # academic-judgement matter, not something this triage tool should
+        # confidently route (see the out-of-scope branch below). If this
+        # check ran after has_academic_terms, an enquiry mentioning both a
+        # mark dispute and e.g. "module" would be wrongly swept into a
+        # confident "academic" routing instead of flagged as out of scope.
+        has_mark_dispute_terms = ("mark" in text or "grade" in text) and any(
+            term in text for term in ["fair", "dispute", "disagree", "appeal", "reconsider", "re-mark", "remark", "change it"]
+        )
+        has_library_hours_terms = "library" in text and any(term in text for term in ["hours", "open", "opening"])
 
         flags: list[str] = []
         additional_issues = []
@@ -372,6 +389,51 @@ class MockClient(LLMClient):
                 "additional_issues": [],
             }
 
+        if has_it_terms:
+            draft = (
+                f"Dear {sender_name},\n\nSorry to hear you're locked out. Please try resetting your "
+                "password via the self-service portal (password.leeds.ac.uk) first, as this "
+                "resolves most account lockouts immediately. If that doesn't work, or if you're "
+                "still locked out shortly before a deadline, please contact the IT Helpdesk "
+                "directly so they can prioritise this for you.\n\nBest wishes,\nIT Helpdesk"
+            )
+            return {
+                "category": "other",
+                "confidence": 0.85,
+                "summary": "Student is locked out of their Minerva account with an assignment deadline approaching.",
+                "suggested_team": ["it_helpdesk"],
+                "internal_or_external": "internal",
+                "missing_info": None,
+                "suggested_response_draft": draft,
+                "urgency": "high",
+                "needs_human_judgement": False,
+                "internal_note": "No category in the schema maps cleanly to IT/account-access issues; using 'other' with a dedicated team.",
+                "flags": [],
+                "additional_issues": [],
+            }
+
+        if has_mark_dispute_terms:
+            return {
+                "category": "other",
+                "confidence": 0.35,
+                "summary": "Student disagrees with a mark and wants it reviewed/changed.",
+                "suggested_team": [],
+                "internal_or_external": "not_applicable",
+                "missing_info": None,
+                "suggested_response_draft": None,
+                "urgency": "low",
+                "needs_human_judgement": True,
+                "internal_note": (
+                    "This is an academic-judgement matter (a mark dispute), not a navigational or "
+                    "administrative enquiry. It doesn't cleanly match any of the covered categories "
+                    "or teams -- routing it confidently would mean guessing at the institution's "
+                    "formal mark-review/appeals process, which this tool has no grounded knowledge "
+                    "of. Deferring to a human rather than forcing a category."
+                ),
+                "flags": ["low_confidence", "out_of_scope"],
+                "additional_issues": [],
+            }
+
         if has_wellbeing_terms:
             return {
                 "category": "wellbeing",
@@ -425,7 +487,30 @@ class MockClient(LLMClient):
                 "additional_issues": [],
             }
 
-        # Default: routine/navigational
+        if has_library_hours_terms:
+            draft = (
+                f"Dear {sender_name},\n\nThanks for your message. Library opening hours are "
+                "extended during the exam period -- you can find the current opening hours for "
+                "each campus library on the Library website, as these vary by site and by exact "
+                "week. Let us know if you have any trouble finding this.\n\nBest wishes,\n"
+                "Student Information Service"
+            )
+            return {
+                "category": "info",
+                "confidence": 0.9,
+                "summary": "Student is asking about extended library opening hours during the exam period.",
+                "suggested_team": ["student_information_service"],
+                "internal_or_external": "internal",
+                "missing_info": None,
+                "suggested_response_draft": draft,
+                "urgency": "low",
+                "needs_human_judgement": False,
+                "internal_note": None,
+                "flags": [],
+                "additional_issues": [],
+            }
+
+        # Default: routine/navigational (address change)
         draft = (
             f"Dear {sender_name},\n\nThanks for your message. You can update your home address "
             "yourself by logging into the student portal and going to "

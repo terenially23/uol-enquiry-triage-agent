@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the triage agent over the 5 sample enquiries and save/print output.
+"""Run the triage agent over the 8 sample enquiries and save/print output.
 
 Usage:
     python3 scripts/run_tests.py            # uses GroqClient if GROQ_API_KEY

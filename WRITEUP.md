@@ -28,8 +28,8 @@ what's actually verbatim vs. this project's reasonable gloss.
 
 ## The routing structure
 
-Six real Leeds services, modelled with their actual constraints rather than
-generic labels (`triage_agent/routing.py`):
+Seven real Leeds services, modelled with their actual constraints rather
+than generic labels (`triage_agent/routing.py`):
 
 | Service | Internal/External | Special handling |
 |---|---|---|
@@ -39,6 +39,20 @@ generic labels (`triage_agent/routing.py`):
 | LUU Advice | **External** (Students' Union, not the University) | Different confidentiality/data-handling to Counselling |
 | Student Funding Team | Internal | Financially sensitive, never auto-draft |
 | Academic Personal Tutor | Internal | Needs a named tutor, not draftable generically |
+| IT Helpdesk / Online Learning Support | Internal | Added later — see below. Often time-sensitive (deadlines), but safe to auto-draft generic self-service steps |
+
+**IT Helpdesk / Online Learning Support was not in the original 6.** It was
+added specifically to close a gap the brief itself flags: the brief's own
+routing structure lists example categories including "access to online
+learning," but none of the original 6 teams actually cover account/VLE
+access issues (Minerva logins, password resets, locked accounts). Routing
+one of those enquiries into, say, Student Information Service would have
+been a wrong-but-plausible-looking guess. This team doesn't map to any
+existing schema `category` value (`info`/`wellbeing`/`disability`/
+`funding`/`academic`/`other`) — it uses `category: "other"` with
+`suggested_team: ["it_helpdesk"]` and an `internal_note` saying so
+explicitly, rather than silently forcing it into `info` just because it's
+navigational-ish. See enquiry 6 in "Test results" below.
 
 ## The schema, and why it isn't a flat "one category per enquiry" shape
 
@@ -85,7 +99,7 @@ implementations: `AnthropicClient`, `GroqClient`, and `MockClient`.
 **This demo actually runs on `GroqClient`, against Groq's free tier**
 (`llama-3.3-70b-versatile`), not the Claude API — a deliberate,
 cost-conscious swap for a self-funded interview prototype rather than
-spending Anthropic API credits on a 5-enquiry demo. It's included here
+spending Anthropic API credits on an 8-enquiry demo. It's included here
 specifically because it's a better argument for the abstraction than
 another paragraph would be: the interface was designed assuming a second
 provider might show up eventually, and when one actually did, `agent.py`,
@@ -104,17 +118,21 @@ Client selection (`triage_agent/client_selection.py`, used by both
 it's what this demo is actually configured to use.
 
 **Known constraint of the free tier: an 8,000 tokens/minute limit.** Firing
-all 5 sample enquiries at Groq back-to-back reliably 429s on the batch's
-last enquiry, regardless of which Groq model is used — this is a genuine
+the sample enquiries at Groq back-to-back reliably 429s later in the
+batch, regardless of which Groq model is used — this is a genuine
 free-tier ceiling, not a bug in this project's prompt or schema size. Two
 guardrails address it, one preventive and one a safety net:
 
-- **Paced batch loop** (`run_tests.py`): `INTER_ENQUIRY_SLEEP_SECONDS = 15`
-  between enquiries, skipped entirely for `MockClient` (no API calls, no
-  need to slow down). This is the actual fix — spacing 5 calls 15s apart
-  keeps the batch comfortably under the TPM ceiling instead of bursting
-  it, and is the cheap, honest way to work within a free tier rather than
-  disguising the constraint.
+- **Paced batch loop** (`run_tests.py`, `scripts/evaluate.py`):
+  `INTER_ENQUIRY_SLEEP_SECONDS = 15` between enquiries, skipped entirely
+  for `MockClient` (no API calls, no need to slow down). This is the
+  actual fix — spacing calls 15s apart keeps the batch comfortably under
+  the TPM ceiling instead of bursting it, and is the cheap, honest way to
+  work within a free tier rather than disguising the constraint. The
+  sample set grew from 5 to 8 enquiries without needing to change this —
+  it just means a real-provider run takes ~30s longer
+  (`evaluate.py`'s 8-enquiry batch is ~1:45 end to end on Groq, vs.
+  `run_tests.py`'s original 5-enquiry ~1:00).
 - **429 retry/backoff, as a reliability guardrail, not the primary fix**
   (`GroqClient.categorise`): if a 429 still happens, it parses the wait
   time Groq reports in the error body (`"Please try again in 6.96s"`, via
@@ -269,7 +287,7 @@ issue, not just once per result — left out here because it's a small,
 clearly-scoped prototype, but it's the first thing I'd fix if multi-issue
 enquiries turned out to be common.
 
-## Test results (5/5 sample enquiries, `outputs/results.json`)
+## Test results (8/8 sample enquiries, `outputs/results.json`)
 
 1. **Routine address change** → `info`, confidence 0.90, auto-draftable.
    Matches expectation.
@@ -292,9 +310,75 @@ enquiries turned out to be common.
    dedicated multi-issue guardrail (#5 above), not a side effect of this
    enquiry's confidence also being low — see that section for why the
    distinction matters.
+6. **Minerva/VLE account locked, assignment due Friday** → new `it_helpdesk`
+   team (see "The routing structure" — added because the brief explicitly
+   names "access to online learning" as an illustrative example and
+   nothing in the original 6 teams covered it), category `other` (no
+   category in the schema maps cleanly to IT/account-access — see
+   `internal_note`), confidence 0.85, urgency `high` (deadline pressure),
+   safe auto-draft (generic self-service password-reset steps + escalation
+   to IT Helpdesk, nothing sensitive or promised). Matches expectation.
+7. **Library opening hours during exam period** → `info`, confidence 0.90,
+   safe auto-draft, no flags — a second, independent routine/navigational
+   case in a different domain from enquiry 1, to check that "safe to
+   auto-draft" isn't just correct for address changes specifically.
+   Matches expectation.
+8. **Disputed essay mark** → deliberately the "nothing fits well" test
+   case. Category `other`, confidence 0.35 (below threshold),
+   `needs_human_judgement=True`, `suggested_team=[]` (empty, not a guess),
+   no auto-draft, and an `internal_note` stating plainly that a mark
+   dispute is an academic-judgement matter this tool has no grounded
+   knowledge of the formal appeals process for, rather than confidently
+   guessing `academic_personal_tutor` because the topic is loosely
+   course-related. Matches expectation — the honest failure mode is an
+   admitted "I don't know," not a wrong confident answer.
 
 Run `python3 scripts/run_tests.py` to reproduce; it prints raw enquiry text
 next to the structured output for each case and writes the full JSON.
+
+## Evaluation
+
+`scripts/evaluate.py` scores the agent against a hand-written answer key
+instead of just printing output for a human to eyeball. It's deliberately
+a **deterministic, exact-match evaluation against a small labelled set**,
+not an LLM-graded/fuzzy eval — with 8 enquiries the whole answer key fits
+on a screen, and every number it prints is checkable by hand: open
+`data/sample_enquiries.json`, read the `expected_*` value, read the
+actual output, done. That property (hand-defensible, not "trust the
+grading model") mattered more here than scale, given the interview
+context.
+
+**Answer key fields**, on each enquiry in `data/sample_enquiries.json`,
+starting as `null` (unfilled) and filled in by hand, not auto-generated
+from the agent's own output — scoring an agent against its own answers
+would be circular:
+
+- `expected_category` — exact string match against `category`.
+- `expected_team` — set match against `suggested_team` (order-independent).
+- `expected_flags` — set match against `flags` (order-independent; `[]`
+  is a valid, fillable expectation — only `null` means "not filled in
+  yet," so a genuinely empty expected-flags list still gets scored).
+- `expected_needs_human_judgement` — exact boolean match (same `null` vs.
+  `false` distinction as above).
+
+**A `null` field is skipped for scoring, not counted wrong.** This makes
+the script safe to run at any point while the answer key is being filled
+in — it reports fewer scored fields rather than failing or reporting false
+negatives, and the denominator for a field only grows as that field gets
+filled in across enquiries.
+
+**Current state:** the answer key ships with all `expected_*` fields
+`null` — the scaffold, not real numbers. Running `python3 scripts/
+evaluate.py` today prints "no enquiries scored yet" for all four fields,
+by design (see the script's own docstring for the exact semantics). Real
+scorecard numbers depend on the answer key being filled in by hand first,
+deliberately not auto-filled from this project's own prior "matches
+expectation" claims in "Test results" above — an agent grading itself
+against its own author's assumptions would hide exactly the kind of blind
+spot that produced the two guardrail bugs found earlier in this project's
+history. Once filled in, `python3 scripts/evaluate.py` prints a per-field
+scorecard (`N/M correct`) and lists every mismatch by enquiry and field,
+e.g. `ENQ-006 [category]: expected 'other', got 'info'`.
 
 ## Where it plausibly gets categorisation wrong
 
@@ -320,11 +404,13 @@ trip the 0.6 threshold.
   can spot-check without re-reading a separate source. That's a UI/process
   decision, not a model one, and it's the one that actually catches
   confident mistakes.
-- Longer term: a small labelled eval set (50-100 real, anonymised past
-  enquiries) would let me measure precision/recall per category instead of
-  eyeballing 5 hand-picked examples, and specifically test category
-  *pairs* that are prone to overlap (funding/wellbeing, disability/academic)
-  rather than assuming the single-topic accuracy generalises.
+- Longer term: `scripts/evaluate.py` now exists as the mechanism, but the
+  set behind it is still 8 hand-picked enquiries. Growing it to 50-100
+  real, anonymised past enquiries would let me measure precision/recall
+  per category properly instead of eyeballing a small hand-picked set,
+  and specifically test category *pairs* that are prone to overlap
+  (funding/wellbeing, disability/academic, and now IT-access/info) rather
+  than assuming the single-topic accuracy generalises.
 - A cheap structural mitigation I'd add next: treat "financial AND
   emotional language both present" as its own trigger for
   `additional_issues`/`needs_human_judgement`, the same way multi-issue
@@ -341,9 +427,15 @@ them rather than implying more maturity than it has:
   value from the "signature" — there's no verification this is really the
   named student, no student-record lookup, no de-duplication of enquiry
   threads.
-- **No evaluation set.** The 5 sample enquiries are the brief's own
-  examples, hand-picked to be illustrative, not a statistically meaningful
-  test of categorisation accuracy. See above.
+- **Evaluation set is small and hand-picked, not statistically meaningful.**
+  `scripts/evaluate.py` scores the agent against a hand-written answer key
+  (see "Evaluation" below) — this closes the *mechanism* gap (there is now
+  a real, deterministic, defensible scoring script, not just eyeballed
+  output), but 8 enquiries covering 7 categories/teams is nowhere near
+  enough to claim statistically meaningful accuracy. It tells you the
+  happy path and a handful of known-hard cases work; it says nothing about
+  the real distribution of enquiries a live inbox would produce, or about
+  categories/phrasings this set doesn't happen to cover.
 - **No real retrieval/RAG system.** `guidance/` grounds exactly two facts
   (disability evidence requirement, LUU independence) as hand-picked,
   hard-coded excerpts looked up by a Python `if`, not embeddings or search
@@ -415,17 +507,21 @@ first at real volume:
    ticket metadata (category, suggested team, urgency), not the ticket
    itself.
 
-5. **No evaluation set, so accuracy is unmeasured and untracked.** As
-   covered above — 5 hand-picked examples tell you the happy path works,
-   not the real distribution. At volume, model updates (a new Claude
-   version, a prompt tweak) could silently regress accuracy on categories
-   this prototype's 5 cases don't exercise.
-   → **Fix:** a labelled eval set from real (anonymised) historical
-   enquiries, run on every prompt/model change, with tracked
-   precision/recall per category and specific attention to the ambiguous
-   pairs (funding/wellbeing, disability/academic) — plus structured
-   logging (every triage call, its input, output, and eventual human
-   correction) to keep building that eval set over time.
+5. **The evaluation mechanism exists (`scripts/evaluate.py`) but the eval
+   set is 8 hand-picked enquiries, so accuracy is measured but not
+   tracked at any real scale.** At volume, model updates (a new Groq/
+   Claude model, a prompt tweak) could silently regress accuracy on
+   categories this 8-enquiry set doesn't exercise, and there's no CI
+   wiring that runs the eval automatically or blocks a change that drops
+   the score.
+   → **Fix:** grow the labelled set from real (anonymised) historical
+   enquiries — hundreds, not 8 — with tracked precision/recall per
+   category and specific attention to the ambiguous pairs (funding/
+   wellbeing, disability/academic, and now IT-access/info); run it in CI
+   on every prompt/model change and fail the build on regression; add
+   structured logging (every triage call, its input, output, and eventual
+   human correction) to keep growing the set from real production data
+   rather than more hand-written examples.
 
 6. **No real human-review UI.** Reviewers currently read `run_tests.py`
    terminal output or a JSON file. There's no queue view, no way to
