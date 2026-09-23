@@ -41,22 +41,23 @@ COLUMNS = [
 
 
 def flatten(row: dict) -> dict:
-    enquiry = row["enquiry"]
-    result = row["triage_result"]
-    missing_info = result.get("missing_info")
+    # row is already a flat record (run_tests.py merges the enquiry's own
+    # fields -- sender_name/sender_email/body -- directly into the same
+    # dict as the triage result), so this just re-shapes it for the table.
+    missing_info = row.get("missing_info")
     return {
-        "enquiry_id": result["enquiry_id"],
-        "sender": f"{enquiry['sender_name']} <{enquiry['sender_email']}>",
-        "category": result["category"],
-        "confidence": f"{result['confidence']:.2f}",
-        "suggested_team": "; ".join(result["suggested_team"]),
-        "internal_or_external": result["internal_or_external"],
-        "urgency": result["urgency"],
-        "needs_human_judgement": result["needs_human_judgement"],
+        "enquiry_id": row["enquiry_id"],
+        "sender": f"{row['sender_name']} <{row['sender_email']}>",
+        "category": row["category"],
+        "confidence": f"{row['confidence']:.2f}",
+        "suggested_team": "; ".join(row["suggested_team"]),
+        "internal_or_external": row["internal_or_external"],
+        "urgency": row["urgency"],
+        "needs_human_judgement": row["needs_human_judgement"],
         "missing_info": missing_info["evidence_attached"] if missing_info else "-",
-        "flags": "; ".join(result["flags"]) or "-",
-        "has_draft": bool(result["suggested_response_draft"]),
-        "summary": result["summary"],
+        "flags": "; ".join(row["flags"]) or "-",
+        "has_draft": bool(row["suggested_response_draft"]),
+        "summary": row["summary"],
     }
 
 

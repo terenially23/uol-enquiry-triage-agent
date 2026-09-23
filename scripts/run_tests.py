@@ -53,7 +53,22 @@ def main() -> None:
             enquiry_id=enquiry["enquiry_id"],
         )
         print_row(enquiry["sender_name"], enquiry["sender_email"], enquiry["body"], result)
-        results.append({"enquiry": enquiry, "triage_result": result.to_dict()})
+
+        # Flat record, not nested sub-objects: the original enquiry
+        # (what was asked) merged directly with the triage result (what
+        # came back), so a reader opening just this file sees both without
+        # digging into an "enquiry" sub-key or cross-referencing
+        # sample_enquiries.json. expected_* answer-key fields (test
+        # fixture metadata, not part of the enquiry itself) are left out.
+        results.append(
+            {
+                "enquiry_id": enquiry["enquiry_id"],
+                "sender_name": enquiry["sender_name"],
+                "sender_email": enquiry["sender_email"],
+                "body": enquiry["body"],
+                **result.to_dict(),
+            }
+        )
 
     OUTPUT_PATH.parent.mkdir(exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(results, indent=2))
