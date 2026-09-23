@@ -120,6 +120,20 @@ class TestSensitiveFinancialGuardrail(unittest.TestCase):
         result = triage(payload)
         self.assertIsNone(result.suggested_response_draft)
 
+    def test_needs_human_judgement_forced_even_at_high_confidence(self):
+        # Same isolation pattern as the multi-issue guardrail's equivalent
+        # test: confidence=0.9 so the confidence guardrail can't be the
+        # thing setting needs_human_judgement=True.
+        payload = base_payload(
+            category="funding",
+            confidence=0.9,
+            needs_human_judgement=False,
+            suggested_response_draft="Sure, here is a payment plan you can use to cover your rent.",
+        )
+        result = triage(payload)
+        self.assertGreaterEqual(result.confidence, 0.6)  # confirms the confidence guardrail didn't fire
+        self.assertTrue(result.needs_human_judgement)
+
 
 class TestMultiIssueGuardrail(unittest.TestCase):
     def test_multi_issue_draft_suppressed_even_at_high_confidence(self):

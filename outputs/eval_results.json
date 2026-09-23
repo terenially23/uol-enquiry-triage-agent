@@ -126,8 +126,8 @@
           "correct": true
         },
         "needs_human_judgement": {
-          "expected": false,
-          "actual": false,
+          "expected": true,
+          "actual": true,
           "correct": true
         }
       }
@@ -229,33 +229,37 @@
       "enquiry_id": "ENQ-008",
       "fields": {
         "category": {
-          "expected": "other",
+          "expected": "academic",
           "actual": "other",
-          "correct": true
+          "correct": false
         },
         "team": {
-          "expected": [],
+          "expected": [
+            "academic_personal_tutor"
+          ],
           "actual": [],
-          "correct": true
+          "correct": false
         },
         "flags": {
-          "expected": [
-            "low_confidence",
-            "out_of_scope"
-          ],
+          "expected": [],
           "actual": [
             "low_confidence",
             "out_of_scope"
           ],
-          "correct": true
+          "correct": false
         },
         "needs_human_judgement": {
-          "expected": true,
+          "expected": false,
           "actual": true,
-          "correct": true
+          "correct": false
         }
       }
     }
   ],
-  "mismatches": []
+  "mismatches": [
+    "ENQ-008 [category]: expected 'academic', got 'other'",
+    "ENQ-008 [team]: expected ['academic_personal_tutor'], got []",
+    "ENQ-008 [flags]: expected [], got ['low_confidence', 'out_of_scope']",
+    "ENQ-008 [needs_human_judgement]: expected False, got True"
+  ]
 }

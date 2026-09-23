@@ -17,7 +17,9 @@ for that field goes up by one.
 Field semantics:
   expected_category                -> exact string match against category
   expected_team                    -> set match against suggested_team
-                                       (order doesn't matter)
+                                       (order doesn't matter; also
+                                       insensitive to slug vs. display-name
+                                       formatting -- see _canonical_team())
   expected_flags                   -> set match against flags (order
                                        doesn't matter; [] is a valid,
                                        fillable expectation, not "unfilled"
@@ -44,6 +46,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from triage_agent.agent import TriageAgent
 from triage_agent.client_selection import build_client
 from triage_agent.llm_client import MockClient
+from triage_agent.routing import TEAMS
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_PATH = ROOT / "data" / "sample_enquiries.json"
@@ -56,6 +59,28 @@ INTER_ENQUIRY_SLEEP_SECONDS = 15
 FIELDS = ["category", "team", "flags", "needs_human_judgement"]
 
 
+def _canonical_team(token: str) -> str:
+    """Map a team token -- the canonical slug (e.g.
+    "student_information_service") or a display name (e.g. "Student
+    Information Service") in any case/whitespace -- to its canonical slug,
+    using routing.py's TEAMS as the single source of truth for the
+    mapping. A live model sometimes returns the display name instead of
+    the slug despite the schema/prompt asking for the slug; that's a
+    format difference, not a routing error, so team comparisons need to be
+    insensitive to it. Falls back to a lightly normalized version of
+    unrecognized tokens rather than crashing, so a genuinely wrong team
+    still shows up as a mismatch instead of silently passing."""
+    normalized = token.strip().lower()
+    for slug, team in TEAMS.items():
+        if normalized == slug or normalized == team.name.strip().lower():
+            return slug
+    return normalized
+
+
+def _normalize_team_set(tokens) -> set[str]:
+    return {_canonical_team(t) for t in tokens}
+
+
 def score_field(field: str, expected, actual) -> bool | None:
     """Returns True/False if scored, None if this field wasn't filled in."""
     if expected is None:
@@ -63,7 +88,7 @@ def score_field(field: str, expected, actual) -> bool | None:
     if field == "category":
         return actual.category == expected
     if field == "team":
-        return set(actual.suggested_team) == set(expected)
+        return _normalize_team_set(actual.suggested_team) == _normalize_team_set(expected)
     if field == "flags":
         return set(actual.flags) == set(expected)
     if field == "needs_human_judgement":

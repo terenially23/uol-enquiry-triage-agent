@@ -154,13 +154,19 @@ class TriageAgent:
                     result.flags.append("missing_evidence")
 
         # Guardrail: financially sensitive enquiries never carry an
-        # unreviewed auto-draft, regardless of confidence or wording. This
-        # was previously only requested via the system prompt (rule 4) and
-        # left the model free to draft one anyway -- suppression flip-flopped
-        # between runs depending on whether the model complied that time.
-        # Enforced here in code so it's unconditional.
+        # unreviewed auto-draft, regardless of confidence or wording, and
+        # always require human judgement -- same as the multi-issue
+        # guardrail below, for consistency: a financial hardship enquiry
+        # is exactly the kind of case where a human should always be
+        # deciding the response, not just reviewing a suppressed draft.
+        # Draft suppression was previously only requested via the system
+        # prompt (rule 4) and left the model free to draft one anyway --
+        # suppression flip-flopped between runs depending on whether the
+        # model complied that time. Enforced here in code so both are
+        # unconditional.
         if result.category == "funding" or "sensitive_financial" in result.flags:
             result.suggested_response_draft = None
+            result.needs_human_judgement = True
             if "sensitive_financial" not in result.flags:
                 result.flags.append("sensitive_financial")
 

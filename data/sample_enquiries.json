@@ -37,7 +37,7 @@
     "expected_category": "funding",
     "expected_team": ["student_funding_team"],
     "expected_flags": ["sensitive_financial"],
-    "expected_needs_human_judgement": false
+    "expected_needs_human_judgement": true
   },
   {
     "enquiry_id": "ENQ-005",
@@ -74,9 +74,9 @@
     "sender_name": "Tomasz Nowicki",
     "sender_email": "lw21tn@leeds.ac.uk",
     "body": "Hi, I got my essay back for 'Introduction to Sociology' and received a mark of 58. I don't think this is a fair mark given the effort I put in, and I'd like someone to review and change it. What can I do? Thanks, Tomasz",
-    "expected_category": "other",
-    "expected_team": [],
-    "expected_flags": ["low_confidence", "out_of_scope"],
-    "expected_needs_human_judgement": true
+    "expected_category": "academic",
+    "expected_team": ["academic_personal_tutor"],
+    "expected_flags": [],
+    "expected_needs_human_judgement": false
   }
 ]

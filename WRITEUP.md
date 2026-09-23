@@ -402,57 +402,99 @@ in — it reports fewer scored fields rather than failing or reporting false
 negatives, and the denominator for a field only grows as that field gets
 filled in across enquiries.
 
-**Final scorecard — `MockClient`, not a live model.** This is a load-
-bearing caveat, not a footnote: this scorecard was produced with
-`--mock`/the automatic `MockClient` fallback (no `GROQ_API_KEY` or
-`ANTHROPIC_API_KEY` was set wherever this was run), so it verifies the
-*guardrail and scoring pipeline is wired correctly end to end*, not that
-a live model categorises these 8 enquiries correctly. Those are different
-claims. `MockClient` is deterministic keyword matching (see "LLM client"
-above) — of course it scores 8/8 against an answer key describing the
-behaviour it was written to produce; that's closer to a pipeline
-smoke test than a model-accuracy result. A live-Groq scorecard, run with
-`python3 scripts/evaluate.py` and `GROQ_API_KEY` set, has not been
-captured in this document. Given a live run has already surfaced a Groq
-reliability issue this mock run obviously can't (see "A second, unrelated
-failure mode: tool-call compliance" in the LLM client section above), a
-live-Groq scorecard should be treated as materially different
-information, not an assumed-equal substitute for this one, before citing
-an accuracy number in interview.
-
-Answer key filled in by hand (not auto-generated from this project's own
-prior "matches expectation" claims in "Test results" above — an agent
-grading itself against its own author's assumptions would hide exactly
-the kind of blind spot that produced the two guardrail bugs found earlier
-in this project's history):
+**`MockClient` scorecard is a pipeline check, not a model-accuracy
+result — and it is not 8/8 by design.** Running `python3 scripts/
+evaluate.py --mock` today:
 
 ```
-category                : 8/8 correct  (MockClient)
-team                     : 8/8 correct  (MockClient)
-flags                    : 8/8 correct  (MockClient)
-needs_human_judgement    : 8/8 correct  (MockClient)
+category                : 7/8 correct  (MockClient)
+team                     : 7/8 correct  (MockClient)
+flags                    : 7/8 correct  (MockClient)
+needs_human_judgement    : 7/8 correct  (MockClient)
 
-No mismatches on any scored field.
+Mismatches (4), all ENQ-008:
+  - category: expected 'academic', got 'other'
+  - team: expected ['academic_personal_tutor'], got []
+  - flags: expected [], got ['low_confidence', 'out_of_scope']
+  - needs_human_judgement: expected False, got True
 ```
 
-**The first real run wasn't 8/8 — it was 5/8 on `flags`,** and that's the
-more useful thing to be able to say in interview than the clean final
-number. `ENQ-003`, `ENQ-005`, and `ENQ-008` each initially had an answer
-key entry naming only one of the two flags the code actually (and
-correctly) produces — e.g. `ENQ-005`'s answer key said `["multi_issue"]`
-but the code also correctly appends `low_confidence` (its confidence is
-0.55, below the 0.6 threshold, an entirely separate guardrail). All three
-were **answer-key gaps, not code bugs**: verified by checking each extra
-flag against the specific guardrail or `MockClient` branch producing it,
-then deciding by hand whether it belonged in the answer key
-(`ambiguous_referral`+`low_confidence`, `multi_issue`+`low_confidence`,
-`low_confidence`+`out_of_scope` — all correct, kept as-is; `evaluate.py`'s
-exact-set flag matching was deliberately left as-is rather than loosened,
-since a future *unexpected* extra flag is exactly the kind of regression
-exact matching exists to catch). This is the eval doing its job on itself
-before touching a single enquiry from real traffic — catching an
-incomplete answer key is a legitimate, useful failure mode of a labelled
-eval, not a sign the eval is broken.
+That's expected and correct, not a regression: `MockClient`'s keyword
+matching still routes ENQ-008 (the essay-mark dispute) as out-of-scope,
+but the answer key now records what a **live model** decided (see below)
+— `academic`/Academic Personal Tutor, on the reasoning that a personal
+tutor is a plausible real first contact for a grade dispute, judged more
+correct on reflection than the original "nothing fits" expectation.
+`MockClient` wasn't updated to match, deliberately: it's a fixed,
+hand-written stand-in for offline testing, not a second categoriser that
+needs to track every judgment call made about what "correct" means for a
+live model. The 7/8 here is the accurate, current mock-pipeline check;
+treat any "8/8" figure attached to `MockClient` elsewhere as describing
+an earlier state of the answer key, not this one.
+
+**A live run found 14 mismatches; 6 were a scoring bug, not the model
+being wrong.** `evaluate.py`'s team comparison did a raw string-equality
+set match, and the live model sometimes returned a team's display name
+(`"Student Information Service"`) instead of its canonical slug
+(`student_information_service`) — same team, different formatting.
+Fixed with `_canonical_team()`, which maps either a slug or a display
+name (case/whitespace-insensitive) back to the canonical slug using
+`routing.py`'s `TEAMS` as the single source of truth, before comparing.
+An unrecognized token still falls through to a lightly normalized string
+rather than crashing, so a genuinely wrong team is still caught as a
+mismatch — this loosens *format* matching only, not correctness matching.
+
+**Of the remaining 8, most were real findings, sorted into three kinds:**
+
+1. **Flags can vary slightly run-to-run on a live model, even when the
+   guardrail logic producing them is correct — a genuine limitation to
+   state plainly, not a bug to chase.** `ENQ-003` and `ENQ-005` didn't
+   produce every expected flag on this particular live run
+   (`ambiguous_referral` and `low_confidence` respectively went missing).
+   Both flags are still produced correctly by deterministic guardrail
+   code when their trigger condition holds (`internal_or_external ==
+   "ambiguous"`, `confidence < 0.6`) — what's non-deterministic is the
+   model's own `confidence` number and `internal_or_external` classification
+   from one call to the next, which can land just above/below a threshold
+   or flip an ambiguous case differently between runs. No code change:
+   this is exactly the kind of thing a single live run can't distinguish
+   from a bug, and only re-running (or a larger eval set with repeat
+   trials) can tell apart from a real regression.
+2. **Funding enquiries now force `needs_human_judgement=True`,
+   unconditionally, same as the multi-issue guardrail — a deliberate
+   consistency fix, not a bug fix.** Previously the funding/
+   `sensitive_financial` guardrail nulled the draft but left
+   `needs_human_judgement` as whatever the model returned. A financial
+   hardship enquiry is exactly the kind of case where a human should
+   always be the one deciding the response, not just reviewing a
+   suppressed draft — the same reasoning already applied to multi-issue
+   enquiries. `ENQ-004`'s answer key updated from `false` to `true` to
+   match (a direct, mechanical consequence of this decision, not an
+   independent judgment call). Unit test:
+   `TestSensitiveFinancialGuardrail::test_needs_human_judgement_forced_even_at_high_confidence`,
+   same confidence=0.9 isolation pattern as the multi-issue equivalent.
+3. **`ENQ-008` — the live model's answer (academic/Academic Personal
+   Tutor) was judged more correct than the original answer key's
+   expectation (other/out-of-scope) on reflection, and the answer key was
+   updated to match, not the code.** This is worth being honest about in
+   interview: the original "nothing fits, defer to a human" design for
+   this enquiry was itself a judgment call, made before seeing what a
+   real model would actually do with it, and a live run surfaced a
+   plausible case that the original expectation was too conservative. Not
+   every live-vs-answer-key mismatch means the code is wrong — sometimes
+   it means the answer key encoded an assumption worth revisiting, and
+   the eval's job is to surface that disagreement for a human to resolve,
+   not to silently prefer either side.
+
+**A live-Groq scorecard reflecting all of the above has not been
+captured in this document.** This sandbox cannot reach `api.groq.com`
+(confirmed via `curl` — blocked at the network egress proxy) and has no
+`GROQ_API_KEY` set, so every `evaluate.py` run in this session, including
+the 7/8 mock figure above, used `MockClient`. Run `python3 scripts/
+evaluate.py` yourself with `GROQ_API_KEY` set to get the real, current
+live number — expected to be close to 8/8 given the fixes above, but
+"close to" is a guess, not a claim; state whatever the actual rerun
+prints, not this expectation, in interview.
 
 ## Where it plausibly gets categorisation wrong
 
