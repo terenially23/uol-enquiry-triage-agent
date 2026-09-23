@@ -1,0 +1,11 @@
+| enquiry_id | category_expected | category_actual | category_result | team_expected | team_actual | team_result | flags_expected | flags_actual | flags_result | needs_human_judgement_expected | needs_human_judgement_actual | needs_human_judgement_result |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ENQ-001 | info | info | PASS | student_information_service | student_information_service | PASS | [] | [] | PASS | False | False | PASS |
+| ENQ-002 | disability | disability | PASS | disability_services | disability_services | PASS | missing_evidence | missing_evidence | PASS | False | False | PASS |
+| ENQ-003 | wellbeing | wellbeing | PASS | counselling_and_wellbeing; luu_advice | counselling_and_wellbeing; luu_advice | PASS | ambiguous_referral; low_confidence | ambiguous_referral; low_confidence | PASS | True | True | PASS |
+| ENQ-004 | funding | funding | PASS | student_funding_team | student_funding_team | PASS | sensitive_financial | sensitive_financial | PASS | True | True | PASS |
+| ENQ-005 | disability | disability | PASS | disability_services | disability_services | PASS | multi_issue; low_confidence | multi_issue; low_confidence | PASS | True | True | PASS |
+| ENQ-006 | other | other | PASS | it_helpdesk | it_helpdesk | PASS | [] | [] | PASS | False | False | PASS |
+| ENQ-007 | info | info | PASS | student_information_service | student_information_service | PASS | [] | [] | PASS | False | False | PASS |
+| ENQ-008 | academic | other | FAIL | academic_personal_tutor | [] | FAIL | [] | low_confidence; out_of_scope | FAIL | False | True | FAIL |
+| TOTALS |  |  | 7/8 |  |  | 7/8 |  |  | 7/8 |  |  | 7/8 |

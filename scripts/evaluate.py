@@ -32,10 +32,17 @@ Usage:
     python3 scripts/evaluate.py            # same client selection as
                                               # run_tests.py / try_one.py
     python3 scripts/evaluate.py --mock     # force the mock client
+
+Writes outputs/eval_results.json (full detail, as before) plus
+outputs/eval_scorecard.md and outputs/eval_scorecard.csv -- a flat table,
+one row per enquiry, expected vs. actual vs. pass/fail per field, same
+pattern as export_table.py, with a final TOTALS row. For putting straight
+into a slide alongside results_table.md/.csv.
 """
 
 from __future__ import annotations
 
+import csv
 import json
 import sys
 import time
@@ -51,6 +58,8 @@ from triage_agent.routing import TEAMS
 ROOT = Path(__file__).resolve().parent.parent
 DATA_PATH = ROOT / "data" / "sample_enquiries.json"
 OUTPUT_PATH = ROOT / "outputs" / "eval_results.json"
+SCORECARD_MD_PATH = ROOT / "outputs" / "eval_scorecard.md"
+SCORECARD_CSV_PATH = ROOT / "outputs" / "eval_scorecard.csv"
 
 # Same rationale as run_tests.py: paces real-provider calls under the
 # free-tier TPM limit. Skipped for MockClient.
@@ -106,6 +115,61 @@ def actual_value(field: str, actual):
     if field == "needs_human_judgement":
         return actual.needs_human_judgement
     raise ValueError(field)
+
+
+def _format_cell(value) -> str:
+    """Renders a field value (None, bool, str, or list) as a short table
+    cell. None means "not scored" (expected_* was null), distinct from an
+    empty list [], which is a valid, scored expectation."""
+    if value is None:
+        return "-"
+    if isinstance(value, list):
+        return "; ".join(value) if value else "[]"
+    return str(value)
+
+
+SCORECARD_COLUMNS = ["enquiry_id"] + [
+    f"{field}_{suffix}" for field in FIELDS for suffix in ("expected", "actual", "result")
+]
+
+
+def build_scorecard_rows(eval_rows: list[dict], scores: dict[str, list[bool]]) -> list[dict]:
+    """One row per enquiry (expected/actual/PASS|FAIL per field), plus a
+    final TOTALS row with each field's N/M correct count in its `_result`
+    column -- same shape export_table.py uses for results.json, so both
+    tables read the same way side by side."""
+    rows = []
+    for row in eval_rows:
+        record = {"enquiry_id": row["enquiry_id"]}
+        for field in FIELDS:
+            cell = row["fields"][field]
+            correct = cell["correct"]
+            result = "-" if correct is None else ("PASS" if correct else "FAIL")
+            record[f"{field}_expected"] = _format_cell(cell["expected"])
+            record[f"{field}_actual"] = _format_cell(cell["actual"])
+            record[f"{field}_result"] = result
+        rows.append(record)
+
+    totals = {"enquiry_id": "TOTALS"}
+    for field in FIELDS:
+        n = len(scores[field])
+        correct = sum(scores[field])
+        totals[f"{field}_expected"] = ""
+        totals[f"{field}_actual"] = ""
+        totals[f"{field}_result"] = f"{correct}/{n}" if n else "-"
+    rows.append(totals)
+
+    return rows
+
+
+def scorecard_to_markdown(rows: list[dict]) -> str:
+    header = "| " + " | ".join(SCORECARD_COLUMNS) + " |"
+    sep = "| " + " | ".join("---" for _ in SCORECARD_COLUMNS) + " |"
+    lines = [header, sep]
+    for row in rows:
+        cells = [str(row[col]).replace("|", "\\|") for col in SCORECARD_COLUMNS]
+        lines.append("| " + " | ".join(cells) + " |")
+    return "\n".join(lines)
 
 
 def main() -> None:
@@ -176,6 +240,14 @@ def main() -> None:
     OUTPUT_PATH.parent.mkdir(exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps({"rows": eval_rows, "mismatches": mismatches}, indent=2))
     print(f"\nSaved full evaluation detail to {OUTPUT_PATH.relative_to(ROOT)}")
+
+    scorecard_rows = build_scorecard_rows(eval_rows, scores)
+    SCORECARD_MD_PATH.write_text(scorecard_to_markdown(scorecard_rows) + "\n")
+    with SCORECARD_CSV_PATH.open("w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=SCORECARD_COLUMNS)
+        writer.writeheader()
+        writer.writerows(scorecard_rows)
+    print(f"Saved {SCORECARD_MD_PATH.relative_to(ROOT)} and {SCORECARD_CSV_PATH.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

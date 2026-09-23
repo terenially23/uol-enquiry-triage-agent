@@ -75,7 +75,10 @@ data/sample_enquiries.json   the 8 test enquiries (5 from the brief + 3 added
 scripts/run_tests.py         batch: runs all 8, saves outputs/results.json
 scripts/try_one.py           interactive: triage one pasted enquiry
 scripts/export_table.py      renders results.json as a markdown/CSV table
-scripts/evaluate.py          scores actual output against the answer key
+scripts/evaluate.py          scores actual output against the answer key,
+                              saves eval_results.json (full detail) and
+                              eval_scorecard.md/.csv (one row per enquiry,
+                              expected/actual/PASS-FAIL per field + totals)
 tests/test_guardrails.py     unit tests for _apply_guardrails, stubbed LLM
 outputs/                     saved sample output (committed for review)
 ```
