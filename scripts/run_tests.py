@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -20,10 +21,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from triage_agent.agent import TriageAgent
 from triage_agent.client_selection import build_client
 from triage_agent.display import print_row
+from triage_agent.llm_client import MockClient
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_PATH = ROOT / "data" / "sample_enquiries.json"
 OUTPUT_PATH = ROOT / "outputs" / "results.json"
+
+# Paces the batch under Groq's free-tier TPM (tokens-per-minute) limit --
+# see WRITEUP.md's LLM client section. Not needed for MockClient (no API
+# calls) so it's skipped there to keep --mock runs fast.
+INTER_ENQUIRY_SLEEP_SECONDS = 15
 
 
 def main() -> None:
@@ -31,9 +38,14 @@ def main() -> None:
     enquiries = json.loads(DATA_PATH.read_text())
     client = build_client(force_mock)
     agent = TriageAgent(client)
+    pace_batch = not isinstance(client, MockClient)
 
     results = []
-    for enquiry in enquiries:
+    for i, enquiry in enumerate(enquiries):
+        if pace_batch and i > 0:
+            print(f"[info] Pacing batch under the free-tier rate limit -- waiting {INTER_ENQUIRY_SLEEP_SECONDS}s.\n")
+            time.sleep(INTER_ENQUIRY_SLEEP_SECONDS)
+
         result = agent.triage(
             sender_name=enquiry["sender_name"],
             sender_email=enquiry["sender_email"],

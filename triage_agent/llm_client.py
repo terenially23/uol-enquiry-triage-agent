@@ -23,6 +23,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import time
 from abc import ABC, abstractmethod
 
 from .routing import routing_knowledge_prompt
@@ -181,6 +183,16 @@ class AnthropicClient(LLMClient):
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
+# Groq's 429 body includes a human-readable wait time, e.g.:
+#   "Please try again in 6.96s"
+# There's no structured retry-after field in the JSON body as of this
+# project's build, so this is scraped from that message. If Groq changes
+# the wording, RETRY_WAIT_RE simply won't match and the fallback wait
+# below is used instead.
+RETRY_WAIT_RE = re.compile(r"try again in (\d+(?:\.\d+)?)s", re.IGNORECASE)
+RETRY_WAIT_FALLBACK_SECONDS = 10.0
+RETRY_WAIT_BUFFER_SECONDS = 1.0
+
 
 class GroqClient(LLMClient):
     """Real categorisation via Groq's free-tier, OpenAI-compatible API.
@@ -188,6 +200,15 @@ class GroqClient(LLMClient):
     Uses `requests` directly rather than the `groq` package -- one plain
     HTTP call is simpler than a second SDK dependency for a client this
     small, and `requests` was already a dependency of this project.
+
+    Reliability guardrail: the free tier's TPM (tokens-per-minute) limit
+    means a 429 is an expected occurrence, not a bug, when a batch runs
+    without pacing (see run_tests.py's inter-enquiry sleep). categorise()
+    catches a 429 once, sleeps for the wait time Groq reports (plus a
+    buffer), and retries exactly once. A second 429 raises -- this is a
+    demo running on a free tier, not a queue with unlimited patience, so
+    failing loudly after one retry is the honest behaviour rather than
+    looping silently.
     """
 
     def __init__(self, model: str | None = None, api_key: str | None = None):
@@ -205,7 +226,32 @@ class GroqClient(LLMClient):
 
     def categorise(self, sender_name: str, sender_email: str, body: str) -> dict:
         user_message = f"From: {sender_name} <{sender_email}>\n\n{body.strip()}"
-        response = self._requests.post(
+
+        response = self._post(user_message)
+        if response.status_code == 429:
+            wait_seconds = _parse_retry_wait(response.text) + RETRY_WAIT_BUFFER_SECONDS
+            print(f"[warn] Groq rate limit hit -- waiting {wait_seconds:.1f}s and retrying once.")
+            time.sleep(wait_seconds)
+            response = self._post(user_message)
+            if response.status_code == 429:
+                raise RuntimeError(
+                    f"Groq rate limit hit twice in a row for one enquiry (still 429 after "
+                    f"waiting {wait_seconds:.1f}s). Free-tier TPM limit is likely being hit "
+                    f"faster than the batch is pacing itself -- see run_tests.py's sleep and "
+                    f"WRITEUP.md's LLM client section. Response: {response.text}"
+                )
+
+        if not response.ok:
+            raise RuntimeError(f"Groq API error {response.status_code}: {response.text}")
+
+        tool_calls = response.json()["choices"][0]["message"].get("tool_calls") or []
+        for call in tool_calls:
+            if call["function"]["name"] == "submit_triage":
+                return json.loads(call["function"]["arguments"])
+        raise RuntimeError("Model did not return a submit_triage tool call")
+
+    def _post(self, user_message: str):
+        return self._requests.post(
             GROQ_API_URL,
             headers={"Authorization": f"Bearer {self._api_key}"},
             json={
@@ -220,14 +266,11 @@ class GroqClient(LLMClient):
             },
             timeout=30,
         )
-        if not response.ok:
-            raise RuntimeError(f"Groq API error {response.status_code}: {response.text}")
 
-        tool_calls = response.json()["choices"][0]["message"].get("tool_calls") or []
-        for call in tool_calls:
-            if call["function"]["name"] == "submit_triage":
-                return json.loads(call["function"]["arguments"])
-        raise RuntimeError("Model did not return a submit_triage tool call")
+
+def _parse_retry_wait(error_body: str) -> float:
+    match = RETRY_WAIT_RE.search(error_body)
+    return float(match.group(1)) if match else RETRY_WAIT_FALLBACK_SECONDS
 
 
 class MockClient(LLMClient):

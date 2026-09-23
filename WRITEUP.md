@@ -103,6 +103,39 @@ Client selection (`triage_agent/client_selection.py`, used by both
 **`ANTHROPIC_API_KEY`**, else `MockClient`. Groq is checked first because
 it's what this demo is actually configured to use.
 
+**Known constraint of the free tier: an 8,000 tokens/minute limit.** Firing
+all 5 sample enquiries at Groq back-to-back reliably 429s on the batch's
+last enquiry, regardless of which Groq model is used — this is a genuine
+free-tier ceiling, not a bug in this project's prompt or schema size. Two
+guardrails address it, one preventive and one a safety net:
+
+- **Paced batch loop** (`run_tests.py`): `INTER_ENQUIRY_SLEEP_SECONDS = 15`
+  between enquiries, skipped entirely for `MockClient` (no API calls, no
+  need to slow down). This is the actual fix — spacing 5 calls 15s apart
+  keeps the batch comfortably under the TPM ceiling instead of bursting
+  it, and is the cheap, honest way to work within a free tier rather than
+  disguising the constraint.
+- **429 retry/backoff, as a reliability guardrail, not the primary fix**
+  (`GroqClient.categorise`): if a 429 still happens, it parses the wait
+  time Groq reports in the error body (`"Please try again in 6.96s"`, via
+  `RETRY_WAIT_RE`; a fixed 10s fallback if that wording ever changes and
+  the regex stops matching), sleeps that plus a 1s buffer, and retries
+  exactly once. A second consecutive 429 raises a `RuntimeError` naming
+  the free-tier TPM limit as the likely cause, rather than retrying
+  forever — the same philosophy as the other guardrails in this project:
+  fail loudly and specifically, don't paper over an unresolved state.
+  This is a safety net for a rate-limit spike the fixed pacing didn't
+  fully prevent (e.g. a longer draft pushing one call over the edge), not
+  a substitute for pacing the batch in the first place.
+
+This is worth being upfront about in interview: a paid tier or a smaller/
+cheaper model would make both of these unnecessary in practice, and a real
+production system would use a proper queue with backoff (see
+"Scalability" below) rather than a fixed sleep in a batch script. Both
+exist here because the actual constraint driving this demo is "run it for
+free," and the honest response to a rate limit is to pace around it
+and retry it, not silently swallow the failure.
+
 ## What the guardrail layer does (and why it's not just prompting)
 
 `agent.py` runs three checks after every LLM response, independent of what
