@@ -147,11 +147,11 @@
     },
     "triage_result": {
       "enquiry_id": "ENQ-005",
-      "category": "info",
+      "category": "disability",
       "confidence": 0.55,
-      "summary": "Student reports a timetable clash and separately raises a disability-related access issue.",
+      "summary": "Student also raises a disability-related access issue alongside the timetable query.",
       "suggested_team": [
-        "student_information_service"
+        "disability_services"
       ],
       "internal_or_external": "internal",
       "missing_info": {
@@ -169,15 +169,15 @@
       ],
       "additional_issues": [
         {
-          "category": "disability",
+          "category": "info",
           "suggested_team": [
-            "disability_services"
+            "student_information_service"
           ],
-          "summary": "Student also raises a disability-related access issue alongside the timetable query.",
+          "summary": "Student reports a timetable clash and separately raises a disability-related access issue.",
           "urgency": "medium"
         }
       ],
-      "source_citation": null
+      "source_citation": "https://students.leeds.ac.uk/support-disabled-students \u2014 \"To get support, you will first need to register with Disability Services... Provide supporting information about your disability.\" (see guidance/disability_evidence.md)"
     }
   },
   {

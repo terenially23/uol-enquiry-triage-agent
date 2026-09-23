@@ -90,6 +90,43 @@ class TriageAgent:
     def _apply_guardrails(self, result: TriageResult, sender_name: str) -> None:
         result.requires_human_review = True  # hard constraint, non-negotiable
 
+        # Guardrail: in a multi-issue enquiry, a disability issue always
+        # leads as the primary category/team/summary, never a general/
+        # administrative one (e.g. a timetable clash) -- fixed and
+        # deterministic, not left to whichever category the model (or
+        # MockClient) happened to put first. Disability issues are more
+        # consequential (evidence/adjustment implications, the guardrail
+        # above) and specialist than administrative ones, so they should
+        # get the reviewer's attention first. Runs before the disability
+        # evidence guardrail below so a promoted disability issue still
+        # gets evidence-checked exactly like a disability enquiry that
+        # arrived as the sole issue.
+        #
+        # Known gap: AdditionalIssue doesn't carry a missing_info/evidence
+        # field (only category/suggested_team/summary/urgency), so if the
+        # top-level missing_info wasn't already populated for the
+        # disability aspect specifically, the evidence guardrail below
+        # will default it to "unclear" rather than lose the promotion
+        # entirely -- safe, but means evidence status for a *demoted*
+        # disability issue (the rare case of two disability-adjacent
+        # issues) isn't separately tracked by this schema.
+        if result.category != "disability":
+            disability_issue = next((i for i in result.additional_issues if i.category == "disability"), None)
+            if disability_issue is not None:
+                demoted = AdditionalIssue(
+                    category=result.category,
+                    suggested_team=result.suggested_team,
+                    summary=result.summary,
+                    urgency=result.urgency,
+                )
+                result.additional_issues = [demoted] + [i for i in result.additional_issues if i is not disability_issue]
+                result.category = disability_issue.category
+                result.suggested_team = disability_issue.suggested_team
+                result.summary = disability_issue.summary
+                result.urgency = _higher_urgency(result.urgency, disability_issue.urgency)
+                if "multi_issue" not in result.flags:
+                    result.flags.append("multi_issue")
+
         # Guardrail: never let a drafted response promise a disability
         # adjustment when evidence isn't confirmed attached/on file.
         # Unconditional on evidence_ok, and the replacement draft is
@@ -143,18 +180,22 @@ class TriageAgent:
             result.suggested_response_draft = None
             result.needs_human_judgement = True
 
-        # Guardrail: multi-issue enquiries never carry an auto-draft. A
-        # single draft is written against the primary category/team and
-        # says nothing about whatever's in additional_issues, so it can't
-        # safely represent both routed issues at once. Unconditional on
-        # additional_issues/flags, not on confidence -- found as a gap
+        # Guardrail: multi-issue enquiries never carry an auto-draft, and
+        # always require human judgement. A single draft is written
+        # against the primary category/team and says nothing about
+        # whatever's in additional_issues, so it can't safely represent
+        # both routed issues at once -- and a human should always be the
+        # one deciding how to split the reply, not the tool. Unconditional
+        # on additional_issues/flags, not on confidence -- found as a gap
         # during testing, not designed in from the start: ENQ-005 happened
         # to also trip the confidence-threshold guardrail, which masked
         # that nothing here actually checked for multi-issue enquiries. A
         # multi-issue result with confidence >= 0.6 would previously have
-        # sailed through with an unlabelled, partial draft.
+        # sailed through with an unlabelled, partial draft and
+        # needs_human_judgement left False.
         if result.additional_issues or "multi_issue" in result.flags:
             result.suggested_response_draft = None
+            result.needs_human_judgement = True
 
         # Sanity check: suggested_team entries should be known team keys.
         result.suggested_team = [t for t in result.suggested_team if t in TEAMS] or result.suggested_team
@@ -180,3 +221,13 @@ def _evidence_request_draft(sender_name: str) -> str:
         "us? Once we have this we can look at putting a Student Support "
         "Plan in place.\n\nBest wishes,\nDisability Services"
     )
+
+
+_URGENCY_RANK = {"low": 0, "medium": 1, "high": 2}
+
+
+def _higher_urgency(a: str, b: str) -> str:
+    """Used when promoting a disability issue to primary: keeps the more
+    urgent of the two issues' urgency ratings rather than silently
+    dropping whichever one didn't end up as the primary category."""
+    return a if _URGENCY_RANK.get(a, 0) >= _URGENCY_RANK.get(b, 0) else b

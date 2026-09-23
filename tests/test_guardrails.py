@@ -128,15 +128,19 @@ class TestMultiIssueGuardrail(unittest.TestCase):
         # below 0.6). This test uses confidence=0.9 specifically so the
         # confidence guardrail does NOT fire, isolating the multi-issue
         # guardrail as the thing that must catch it.
+        # additional_issue category is "funding", not "disability", to keep
+        # this test isolated from TestDisabilityPrimaryPromotion below --
+        # a disability additional_issue now also triggers the promotion
+        # guardrail, which is exercised separately.
         payload = base_payload(
             category="info",
             confidence=0.9,
             suggested_response_draft="Sure, I've sorted your timetable clash for you.",
             additional_issues=[
                 {
-                    "category": "disability",
-                    "suggested_team": ["disability_services"],
-                    "summary": "Separate access issue.",
+                    "category": "funding",
+                    "suggested_team": ["student_funding_team"],
+                    "summary": "Separate funding issue.",
                     "urgency": "medium",
                 }
             ],
@@ -167,6 +171,75 @@ class TestMultiIssueGuardrail(unittest.TestCase):
         )
         result = triage(payload)
         self.assertEqual(result.suggested_response_draft, "Here's how to update your address.")
+
+    def test_needs_human_judgement_forced_even_at_high_confidence(self):
+        # Same isolation pattern as test_multi_issue_draft_suppressed_even_at_
+        # high_confidence: confidence=0.9 so the confidence guardrail can't be
+        # the thing setting needs_human_judgement=True. Uses a funding
+        # additional_issue, not disability, to also stay isolated from the
+        # promotion guardrail.
+        payload = base_payload(
+            category="info",
+            confidence=0.9,
+            needs_human_judgement=False,
+            additional_issues=[
+                {
+                    "category": "funding",
+                    "suggested_team": ["student_funding_team"],
+                    "summary": "Separate funding issue.",
+                    "urgency": "medium",
+                }
+            ],
+        )
+        result = triage(payload)
+        self.assertGreaterEqual(result.confidence, 0.6)  # confirms the confidence guardrail didn't fire
+        self.assertTrue(result.needs_human_judgement)
+
+
+class TestDisabilityPrimaryPromotion(unittest.TestCase):
+    def test_disability_promoted_over_administrative_primary(self):
+        # A disability issue listed as the *secondary* issue must still end
+        # up as the primary category/team/summary -- deterministic, not
+        # dependent on which issue the model happened to put first.
+        payload = base_payload(
+            category="info",
+            confidence=0.9,
+            suggested_team=["student_information_service"],
+            summary="Timetable clash.",
+            urgency="medium",
+            missing_info={"evidence_attached": "yes", "details": "On file"},
+            additional_issues=[
+                {
+                    "category": "disability",
+                    "suggested_team": ["disability_services"],
+                    "summary": "Access issue.",
+                    "urgency": "high",
+                }
+            ],
+        )
+        result = triage(payload)
+        self.assertEqual(result.category, "disability")
+        self.assertEqual(result.suggested_team, ["disability_services"])
+        self.assertEqual(result.summary, "Access issue.")
+        self.assertEqual(result.urgency, "high")  # higher of the two issues' urgency, not lost
+        self.assertIn("multi_issue", result.flags)
+        # the administrative issue is demoted into additional_issues, not dropped
+        self.assertEqual(len(result.additional_issues), 1)
+        self.assertEqual(result.additional_issues[0].category, "info")
+        self.assertEqual(result.additional_issues[0].summary, "Timetable clash.")
+
+    def test_already_primary_disability_is_a_no_op(self):
+        payload = base_payload(
+            category="disability",
+            suggested_team=["disability_services"],
+            missing_info={"evidence_attached": "yes", "details": None},
+            additional_issues=[
+                {"category": "info", "suggested_team": ["student_information_service"], "summary": "x", "urgency": "low"}
+            ],
+        )
+        result = triage(payload)
+        self.assertEqual(result.category, "disability")
+        self.assertEqual(result.suggested_team, ["disability_services"])
 
 
 class TestConfidenceAndAmbiguityGuardrails(unittest.TestCase):

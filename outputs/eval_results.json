@@ -4,26 +4,28 @@
       "enquiry_id": "ENQ-001",
       "fields": {
         "category": {
-          "expected": null,
+          "expected": "info",
           "actual": "info",
-          "correct": null
+          "correct": true
         },
         "team": {
-          "expected": null,
+          "expected": [
+            "student_information_service"
+          ],
           "actual": [
             "student_information_service"
           ],
-          "correct": null
+          "correct": true
         },
         "flags": {
-          "expected": null,
+          "expected": [],
           "actual": [],
-          "correct": null
+          "correct": true
         },
         "needs_human_judgement": {
-          "expected": null,
+          "expected": false,
           "actual": false,
-          "correct": null
+          "correct": true
         }
       }
     },
@@ -31,28 +33,32 @@
       "enquiry_id": "ENQ-002",
       "fields": {
         "category": {
-          "expected": null,
+          "expected": "disability",
           "actual": "disability",
-          "correct": null
+          "correct": true
         },
         "team": {
-          "expected": null,
+          "expected": [
+            "disability_services"
+          ],
           "actual": [
             "disability_services"
           ],
-          "correct": null
+          "correct": true
         },
         "flags": {
-          "expected": null,
+          "expected": [
+            "missing_evidence"
+          ],
           "actual": [
             "missing_evidence"
           ],
-          "correct": null
+          "correct": true
         },
         "needs_human_judgement": {
-          "expected": null,
+          "expected": false,
           "actual": false,
-          "correct": null
+          "correct": true
         }
       }
     },
@@ -60,30 +66,35 @@
       "enquiry_id": "ENQ-003",
       "fields": {
         "category": {
-          "expected": null,
+          "expected": "wellbeing",
           "actual": "wellbeing",
-          "correct": null
+          "correct": true
         },
         "team": {
-          "expected": null,
+          "expected": [
+            "counselling_and_wellbeing",
+            "luu_advice"
+          ],
           "actual": [
             "counselling_and_wellbeing",
             "luu_advice"
           ],
-          "correct": null
+          "correct": true
         },
         "flags": {
-          "expected": null,
+          "expected": [
+            "ambiguous_referral"
+          ],
           "actual": [
             "ambiguous_referral",
             "low_confidence"
           ],
-          "correct": null
+          "correct": false
         },
         "needs_human_judgement": {
-          "expected": null,
+          "expected": true,
           "actual": true,
-          "correct": null
+          "correct": true
         }
       }
     },
@@ -91,28 +102,32 @@
       "enquiry_id": "ENQ-004",
       "fields": {
         "category": {
-          "expected": null,
+          "expected": "funding",
           "actual": "funding",
-          "correct": null
+          "correct": true
         },
         "team": {
-          "expected": null,
+          "expected": [
+            "student_funding_team"
+          ],
           "actual": [
             "student_funding_team"
           ],
-          "correct": null
+          "correct": true
         },
         "flags": {
-          "expected": null,
+          "expected": [
+            "sensitive_financial"
+          ],
           "actual": [
             "sensitive_financial"
           ],
-          "correct": null
+          "correct": true
         },
         "needs_human_judgement": {
-          "expected": null,
+          "expected": false,
           "actual": false,
-          "correct": null
+          "correct": true
         }
       }
     },
@@ -120,29 +135,33 @@
       "enquiry_id": "ENQ-005",
       "fields": {
         "category": {
-          "expected": null,
-          "actual": "info",
-          "correct": null
+          "expected": "disability",
+          "actual": "disability",
+          "correct": true
         },
         "team": {
-          "expected": null,
-          "actual": [
-            "student_information_service"
+          "expected": [
+            "disability_services"
           ],
-          "correct": null
+          "actual": [
+            "disability_services"
+          ],
+          "correct": true
         },
         "flags": {
-          "expected": null,
+          "expected": [
+            "multi_issue"
+          ],
           "actual": [
             "multi_issue",
             "low_confidence"
           ],
-          "correct": null
+          "correct": false
         },
         "needs_human_judgement": {
-          "expected": null,
+          "expected": true,
           "actual": true,
-          "correct": null
+          "correct": true
         }
       }
     },
@@ -150,26 +169,28 @@
       "enquiry_id": "ENQ-006",
       "fields": {
         "category": {
-          "expected": null,
+          "expected": "other",
           "actual": "other",
-          "correct": null
+          "correct": true
         },
         "team": {
-          "expected": null,
+          "expected": [
+            "it_helpdesk"
+          ],
           "actual": [
             "it_helpdesk"
           ],
-          "correct": null
+          "correct": true
         },
         "flags": {
-          "expected": null,
+          "expected": [],
           "actual": [],
-          "correct": null
+          "correct": true
         },
         "needs_human_judgement": {
-          "expected": null,
+          "expected": false,
           "actual": false,
-          "correct": null
+          "correct": true
         }
       }
     },
@@ -177,26 +198,28 @@
       "enquiry_id": "ENQ-007",
       "fields": {
         "category": {
-          "expected": null,
+          "expected": "info",
           "actual": "info",
-          "correct": null
+          "correct": true
         },
         "team": {
-          "expected": null,
+          "expected": [
+            "student_information_service"
+          ],
           "actual": [
             "student_information_service"
           ],
-          "correct": null
+          "correct": true
         },
         "flags": {
-          "expected": null,
+          "expected": [],
           "actual": [],
-          "correct": null
+          "correct": true
         },
         "needs_human_judgement": {
-          "expected": null,
+          "expected": false,
           "actual": false,
-          "correct": null
+          "correct": true
         }
       }
     },
@@ -204,30 +227,36 @@
       "enquiry_id": "ENQ-008",
       "fields": {
         "category": {
-          "expected": null,
+          "expected": "other",
           "actual": "other",
-          "correct": null
+          "correct": true
         },
         "team": {
-          "expected": null,
+          "expected": [],
           "actual": [],
-          "correct": null
+          "correct": true
         },
         "flags": {
-          "expected": null,
+          "expected": [
+            "low_confidence"
+          ],
           "actual": [
             "low_confidence",
             "out_of_scope"
           ],
-          "correct": null
+          "correct": false
         },
         "needs_human_judgement": {
-          "expected": null,
+          "expected": true,
           "actual": true,
-          "correct": null
+          "correct": true
         }
       }
     }
   ],
-  "mismatches": []
+  "mismatches": [
+    "ENQ-003 [flags]: expected ['ambiguous_referral'], got ['ambiguous_referral', 'low_confidence']",
+    "ENQ-005 [flags]: expected ['multi_issue'], got ['multi_issue', 'low_confidence']",
+    "ENQ-008 [flags]: expected ['low_confidence'], got ['low_confidence', 'out_of_scope']"
+  ]
 }

@@ -4,79 +4,79 @@
     "sender_name": "Megan Ashworth",
     "sender_email": "ml19ma@leeds.ac.uk",
     "body": "Hi, I recently moved house and need to update my home address on the system. How do I do this? Thanks, Megan",
-    "expected_category": null,
-    "expected_team": null,
-    "expected_flags": null,
-    "expected_needs_human_judgement": null
+    "expected_category": "info",
+    "expected_team": ["student_information_service"],
+    "expected_flags": [],
+    "expected_needs_human_judgement": false
   },
   {
     "enquiry_id": "ENQ-002",
     "sender_name": "Josh Whitfield",
     "sender_email": "el21jw@leeds.ac.uk",
     "body": "Hello, I have dyslexia and I think I need extra time in my exams this year. How do I go about arranging this? I haven't done this before so not sure what I need to send over. Thanks, Josh",
-    "expected_category": null,
-    "expected_team": null,
-    "expected_flags": null,
-    "expected_needs_human_judgement": null
+    "expected_category": "disability",
+    "expected_team": ["disability_services"],
+    "expected_flags": ["missing_evidence"],
+    "expected_needs_human_judgement": false
   },
   {
     "enquiry_id": "ENQ-003",
     "sender_name": "Priya Nandakumar",
     "sender_email": "bs20pn@leeds.ac.uk",
     "body": "Hi, I've been really struggling lately and don't know who to talk to. It's been building up for a while now and I just don't really know where to start. Priya",
-    "expected_category": null,
-    "expected_team": null,
-    "expected_flags": null,
-    "expected_needs_human_judgement": null
+    "expected_category": "wellbeing",
+    "expected_team": ["counselling_and_wellbeing", "luu_advice"],
+    "expected_flags": ["ambiguous_referral"],
+    "expected_needs_human_judgement": true
   },
   {
     "enquiry_id": "ENQ-004",
     "sender_name": "Callum O'Reilly",
     "sender_email": "pg22co@leeds.ac.uk",
     "body": "Hi, I'm having trouble paying rent this month and I'm really worried about it. Is there any support available for this? Thanks, Callum",
-    "expected_category": null,
-    "expected_team": null,
-    "expected_flags": null,
-    "expected_needs_human_judgement": null
+    "expected_category": "funding",
+    "expected_team": ["student_funding_team"],
+    "expected_flags": ["sensitive_financial"],
+    "expected_needs_human_judgement": false
   },
   {
     "enquiry_id": "ENQ-005",
     "sender_name": "Aisha Rahman",
     "sender_email": "sc19ar@leeds.ac.uk",
     "body": "Hello, two things - first, two of my modules have a timetable clash on Wednesdays which I need sorting before term starts. Separately, I have a mobility impairment and the room for one of my seminars is up two flights of stairs with no lift, which I can't manage, so I need that moved to an accessible room. My evidence letter from occupational health is already on file with Disability Services from last year. Thanks, Aisha",
-    "expected_category": null,
-    "expected_team": null,
-    "expected_flags": null,
-    "expected_needs_human_judgement": null
+    "expected_category": "disability",
+    "expected_team": ["disability_services"],
+    "expected_flags": ["multi_issue"],
+    "expected_needs_human_judgement": true
   },
   {
     "enquiry_id": "ENQ-006",
     "sender_name": "Daniel Osei",
     "sender_email": "cv23do@leeds.ac.uk",
     "body": "Hi, I can't log into Minerva - it says my account is locked. I have an assignment due Friday and really need to get this sorted quickly. Thanks, Daniel",
-    "expected_category": null,
-    "expected_team": null,
-    "expected_flags": null,
-    "expected_needs_human_judgement": null
+    "expected_category": "other",
+    "expected_team": ["it_helpdesk"],
+    "expected_flags": [],
+    "expected_needs_human_judgement": false
   },
   {
     "enquiry_id": "ENQ-007",
     "sender_name": "Freya Sutcliffe",
     "sender_email": "hy22fs@leeds.ac.uk",
     "body": "Hi, are the library opening hours extended during the exam period? I wanted to plan my revision schedule around this. Thanks, Freya",
-    "expected_category": null,
-    "expected_team": null,
-    "expected_flags": null,
-    "expected_needs_human_judgement": null
+    "expected_category": "info",
+    "expected_team": ["student_information_service"],
+    "expected_flags": [],
+    "expected_needs_human_judgement": false
   },
   {
     "enquiry_id": "ENQ-008",
     "sender_name": "Tomasz Nowicki",
     "sender_email": "lw21tn@leeds.ac.uk",
     "body": "Hi, I got my essay back for 'Introduction to Sociology' and received a mark of 58. I don't think this is a fair mark given the effort I put in, and I'd like someone to review and change it. What can I do? Thanks, Tomasz",
-    "expected_category": null,
-    "expected_team": null,
-    "expected_flags": null,
-    "expected_needs_human_judgement": null
+    "expected_category": "other",
+    "expected_team": [],
+    "expected_flags": ["low_confidence"],
+    "expected_needs_human_judgement": true
   }
 ]
