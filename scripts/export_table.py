@@ -120,13 +120,13 @@ def main() -> None:
         print(f"[error] {RESULTS_PATH.relative_to(ROOT)} not found -- run scripts/run_tests.py first.")
         sys.exit(1)
 
-    raw_rows = json.loads(RESULTS_PATH.read_text())
+    raw_rows = json.loads(RESULTS_PATH.read_text(encoding="utf-8"))
     rows = [flatten(r) for r in raw_rows]
 
     md = to_markdown(rows)
-    MD_OUTPUT_PATH.write_text(md + "\n")
+    MD_OUTPUT_PATH.write_text(md + "\n", encoding="utf-8")
 
-    with CSV_OUTPUT_PATH.open("w", newline="") as f:
+    with CSV_OUTPUT_PATH.open("w", newline="", encoding="utf-8") as f:
         # QUOTE_ALL, not the csv module's QUOTE_MINIMAL default: several
         # columns (body, suggested_response_draft, internal_note,
         # additional_issues) routinely contain commas, quotes and embedded

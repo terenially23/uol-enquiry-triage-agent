@@ -174,7 +174,7 @@ def scorecard_to_markdown(rows: list[dict]) -> str:
 
 def main() -> None:
     force_mock = "--mock" in sys.argv
-    enquiries = json.loads(DATA_PATH.read_text())
+    enquiries = json.loads(DATA_PATH.read_text(encoding="utf-8"))
     client = build_client(force_mock)
     agent = TriageAgent(client)
     pace_batch = not isinstance(client, MockClient)
@@ -238,12 +238,12 @@ def main() -> None:
     print("=" * 88)
 
     OUTPUT_PATH.parent.mkdir(exist_ok=True)
-    OUTPUT_PATH.write_text(json.dumps({"rows": eval_rows, "mismatches": mismatches}, indent=2))
+    OUTPUT_PATH.write_text(json.dumps({"rows": eval_rows, "mismatches": mismatches}, indent=2), encoding="utf-8")
     print(f"\nSaved full evaluation detail to {OUTPUT_PATH.relative_to(ROOT)}")
 
     scorecard_rows = build_scorecard_rows(eval_rows, scores)
-    SCORECARD_MD_PATH.write_text(scorecard_to_markdown(scorecard_rows) + "\n")
-    with SCORECARD_CSV_PATH.open("w", newline="") as f:
+    SCORECARD_MD_PATH.write_text(scorecard_to_markdown(scorecard_rows) + "\n", encoding="utf-8")
+    with SCORECARD_CSV_PATH.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=SCORECARD_COLUMNS)
         writer.writeheader()
         writer.writerows(scorecard_rows)

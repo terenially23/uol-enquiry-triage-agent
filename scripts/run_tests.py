@@ -35,7 +35,7 @@ INTER_ENQUIRY_SLEEP_SECONDS = 15
 
 def main() -> None:
     force_mock = "--mock" in sys.argv
-    enquiries = json.loads(DATA_PATH.read_text())
+    enquiries = json.loads(DATA_PATH.read_text(encoding="utf-8"))
     client = build_client(force_mock)
     agent = TriageAgent(client)
     pace_batch = not isinstance(client, MockClient)
@@ -71,7 +71,7 @@ def main() -> None:
         )
 
     OUTPUT_PATH.parent.mkdir(exist_ok=True)
-    OUTPUT_PATH.write_text(json.dumps(results, indent=2))
+    OUTPUT_PATH.write_text(json.dumps(results, indent=2), encoding="utf-8")
     print(f"\nSaved structured output for {len(results)} enquiries to {OUTPUT_PATH.relative_to(ROOT)}")
 
 
